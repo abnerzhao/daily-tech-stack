@@ -2,25 +2,23 @@
 
 每天汇总 GitHub Trending、Hacker News 与 Product Hunt 的静态技术日报。
 
-## 自动更新
+## 部署与自动更新
 
-GitHub Actions 会在每天北京时间 07:30 抓取三站 Top 10、更新 `index.html` 并自动提交。Vercel 连接仓库的 `main` 分支后，会为每次新提交自动部署。首次启用前，在仓库 `Settings > Secrets and variables > Actions` 添加：
+流程：GitHub Actions 每天北京时间 07:30 抓取三站 Top 10 并提交 `index.html`；Vercel 监听 `main` 的新提交并自动部署。无需远程服务器、cron 或 Vercel Token。
 
-- `PRODUCT_HUNT_TOKEN`：Product Hunt API Access Token，必需。
-- `OPENAI_API_KEY`：可选；用于把每条简介生成中文。未配置时会使用中文兜底说明。
+首次部署：
 
-然后在 Vercel 导入 `abnerzhao/daily-tech-stack`，保持默认静态站点配置，Production Branch 设为 `main`。不需要配置 Vercel Token 或额外部署工作流。
+1. 在 GitHub 仓库 `Settings > Secrets and variables > Actions` 添加 `PRODUCT_HUNT_TOKEN`（必需，Product Hunt API Access Token）。
+2. 可选添加 `OPENAI_API_KEY`。配置后会为每条内容生成中文简介；未配置时使用中文兜底说明。
+3. 在 Vercel 导入 `abnerzhao/daily-tech-stack`，Framework Preset 选 `Other`，Production Branch 设为 `main`，其余保持默认后部署。
+4. 在 GitHub 的 `Actions > Update daily issue` 中点击 `Run workflow`，可立即生成首份自动日报；之后会按计划每日更新。
 
-本地或远程服务器手动运行：
+每次 Actions 提交后，Vercel 会自动创建生产部署。Vercel 项目不需要额外的环境变量。
+
+本地调试或手动更新：
 
 ```bash
 cd /path/to/daily-tech-stack
 npm run daily:update
 git add index.html && git commit -m "更新：$(date +%F) 技术热榜" && git push
-```
-
-服务器可使用 cron（北京时间 07:30）：
-
-```cron
-30 7 * * * cd /path/to/daily-tech-stack && /usr/bin/npm run daily:update && git add index.html && git commit -m "更新：$(date +\%F) 技术热榜" && git push
 ```

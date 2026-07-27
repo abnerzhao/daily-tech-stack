@@ -119,17 +119,19 @@ async function fetchProductHunt() {
 }
 
 async function describeInChinese(items) {
-  if (!process.env.OPENAI_API_KEY) return new Map();
+  if (!process.env.OPENROUTER_API_KEY) return new Map();
   const payload = items.map(({ key, source, title, context }) => ({ key, source, title, context }));
-  const response = await request("https://api.openai.com/v1/chat/completions", {
+  const response = await request("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
-      authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
       "content-type": "application/json",
+      "http-referer": "https://daily-tech-stack.vercel.app",
+      "x-openrouter-title": "The Daily Stack",
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? "gpt-5-mini",
-      response_format: { type: "json_object" },
+      model: process.env.OPENROUTER_MODEL ?? "openrouter/free",
+      temperature: 0.2,
       messages: [
         { role: "system", content: "你是技术编辑。为每条内容写一句简洁中文简介，包含内容是什么及为什么值得看；每条不超过45个中文字符。只返回 JSON：{\\\"items\\\":[{\\\"key\\\":string,\\\"description\\\":string}]}。" },
         { role: "user", content: JSON.stringify(payload) },
@@ -138,8 +140,8 @@ async function describeInChinese(items) {
   });
   const result = await response.json();
   const content = result.choices?.[0]?.message?.content;
-  if (!content) throw new Error("OpenAI returned no descriptions");
-  const parsed = JSON.parse(content);
+  if (!content) throw new Error("OpenRouter returned no descriptions");
+  const parsed = JSON.parse(String(content).replace(/^```json\s*|\s*```$/g, "").trim());
   return new Map((parsed.items ?? []).map((item) => [item.key, item.description]));
 }
 

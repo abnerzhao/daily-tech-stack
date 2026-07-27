@@ -5,7 +5,8 @@ import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const outputPath = resolve(root, "index.html");
-const date = getOption("--date") ?? new Intl.DateTimeFormat("en-CA", {
+const requestedDate = getOption("--date") ?? process.env.ISSUE_DATE;
+const date = requestedDate || new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Shanghai",
   year: "numeric",
   month: "2-digit",
@@ -121,8 +122,15 @@ async function fetchProductHunt() {
 }
 
 async function fetchHuggingFacePapers() {
-  const url = `https://huggingface.co/api/daily_papers?p=0&limit=10&date=${date}&sort=trending`;
-  const entries = await (await request(url)).json();
+  const latestUrl = "https://huggingface.co/api/daily_papers?p=0&limit=10&sort=trending";
+  const datedUrl = `${latestUrl}&date=${date}`;
+  let entries;
+  try {
+    entries = await (await request(datedUrl)).json();
+  } catch {
+    console.warn(`Hugging Face has no daily feed for ${date}; using the latest available papers.`);
+    entries = await (await request(latestUrl)).json();
+  }
   if (!Array.isArray(entries) || entries.length < 10) {
     throw new Error("Hugging Face Daily Papers returned fewer than 10 papers");
   }

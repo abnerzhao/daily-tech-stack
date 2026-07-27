@@ -2,6 +2,11 @@ name: Update daily issue
 
 on:
   workflow_dispatch:
+    inputs:
+      date:
+        description: "Optional issue date in YYYY-MM-DD (defaults to Asia/Shanghai today)"
+        required: false
+        type: string
   schedule:
     # 07:30 Asia/Shanghai (UTC+8)
     - cron: "30 23 * * *"
@@ -23,6 +28,7 @@ jobs:
           PRODUCT_HUNT_TOKEN: ${{ secrets.PRODUCT_HUNT_TOKEN }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'openrouter/free' }}
+          ISSUE_DATE: ${{ inputs.date }}
       - name: Commit the new issue
         run: |
           git config user.name "github-actions[bot]"

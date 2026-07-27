@@ -1,0 +1,8 @@
+{
+  "name": "daily-tech-stack",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "daily:update": "node scripts/update-daily.mjs"
+  }
+}

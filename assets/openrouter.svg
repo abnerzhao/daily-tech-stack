@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="OpenRouter">
+  <rect width="48" height="48" rx="12" fill="#1E2230"/>
+  <path d="M11 16h13l5 8h8" fill="none" stroke="#F36A3D" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5"/>
+  <path d="M11 32h13l5-8h8" fill="none" stroke="#F4C542" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5"/>
+  <circle cx="10" cy="16" r="3" fill="#FFF9ED"/>
+  <circle cx="10" cy="32" r="3" fill="#FFF9ED"/>
+  <circle cx="38" cy="24" r="3.5" fill="#FFF9ED"/>
+</svg>

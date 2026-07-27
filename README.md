@@ -2,11 +2,11 @@
 
 [English](README.en.md)
 
-每天汇总 GitHub Trending、Hacker News、Product Hunt 与 Hugging Face Papers 的静态技术日报。
+每天汇总 GitHub Trending、Hacker News、Product Hunt、Hugging Face Papers 与 OpenRouter Rankings 的静态技术日报。
 
 ## 部署与自动更新
 
-流程：GitHub Actions 每天北京时间 07:30 抓取四个来源的 Top 10 并提交 `index.html`；Vercel 监听 `main` 的新提交并自动部署。无需远程服务器、cron 或 Vercel Token。
+流程：GitHub Actions 每天北京时间 07:30 抓取五个来源的 Top 10 并提交 `index.html`；Vercel 监听 `main` 的新提交并自动部署。无需远程服务器、cron 或 Vercel Token。
 
 首次部署：
 

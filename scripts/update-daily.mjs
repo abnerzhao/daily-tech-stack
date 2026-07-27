@@ -17,23 +17,24 @@ if (process.argv.includes("--help")) {
   process.exit(0);
 }
 
-const [github, hackerNews, productHunt, huggingFace] = await Promise.all([
+const [github, hackerNews, productHunt, huggingFace, openRouter] = await Promise.all([
   fetchGithubTrending(),
   fetchHackerNews(),
   fetchProductHunt(),
   fetchHuggingFacePapers(),
+  fetchOpenRouterRankings(),
 ]);
 
-const descriptions = await describeInChinese([...github, ...hackerNews, ...productHunt, ...huggingFace]);
-for (const item of [...github, ...hackerNews, ...productHunt, ...huggingFace]) {
+const descriptions = await describeInChinese([...github, ...hackerNews, ...productHunt, ...huggingFace, ...openRouter]);
+for (const item of [...github, ...hackerNews, ...productHunt, ...huggingFace, ...openRouter]) {
   item.description = descriptions.get(item.key) ?? fallbackDescription(item);
 }
 
 const html = await readFile(outputPath, "utf8");
-const issue = renderIssue({ date, github, hackerNews, productHunt, huggingFace });
+const issue = renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter });
 const updated = replaceIssues(html, issue, date);
 await writeFile(outputPath, updated);
-console.log(`Updated ${date}: 40 signals`);
+console.log(`Updated ${date}: 50 signals`);
 
 function getOption(name) {
   const index = process.argv.indexOf(name);
@@ -140,6 +141,20 @@ async function fetchHuggingFacePapers() {
   });
 }
 
+async function fetchOpenRouterRankings() {
+  const result = await (await request("https://openrouter.ai/api/v1/models?sort=most-popular")).json();
+  const models = result.data ?? [];
+  if (models.length < 10) throw new Error("OpenRouter Rankings returned fewer than 10 models");
+  return models.slice(0, 10).map((model, index) => ({
+    key: `openrouter-${index}`,
+    source: "openrouter",
+    title: model.name,
+    url: `https://openrouter.ai/${model.id}`,
+    contextLength: model.context_length ?? 0,
+    context: model.description ?? "OpenRouter weekly model usage ranking",
+  }));
+}
+
 async function describeInChinese(items) {
   if (!process.env.OPENROUTER_API_KEY) return new Map();
   const payload = items.map(({ key, source, title, context }) => ({ key, source, title, context }));
@@ -168,17 +183,19 @@ async function describeInChinese(items) {
 }
 
 function fallbackDescription(item) {
+  if (item.source === "openrouter") return "近一周 Token 使用量靠前的模型，适合观察真实采用趋势。";
   const label = { github: "开源项目", hn: "技术文章", ph: "新产品", hf: "AI 论文" }[item.source];
   return `今日热门${label}，建议查看原始页面了解实现与讨论。`;
 }
 
-function renderIssue({ date, github, hackerNews, productHunt, huggingFace }) {
+function renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter }) {
   const label = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Shanghai" }).format(new Date(`${date}T12:00:00+08:00`));
   const sources = [
     ["github", "github.svg", "GitHub Trending", "https://github.com/trending", github],
     ["hacker-news", "hacker-news.svg", "Hacker News", "https://news.ycombinator.com/", hackerNews],
     ["product-hunt", "product-hunt.svg", "Product Hunt", "https://www.producthunt.com/", productHunt],
     ["hugging-face-papers", "hugging-face.svg", "Hugging Face Papers", "https://huggingface.co/papers", huggingFace],
+    ["openrouter-rankings", "openrouter.svg", "OpenRouter Rankings", "https://openrouter.ai/rankings/", openRouter],
   ];
   return `<!-- ISSUE_START:${date} -->\n        <article class="card active" data-order="0" data-day="${date}">\n          <div class="card-shell">\n            <header class="card-head">Today · ${label}</header>\n            <div class="document">\n              <div class="document-layout">\n                <aside class="contents" aria-label="Contents">\n                  <p class="contents-title">Contents</p>\n                  ${sources.map(([id, icon, title]) => toc(id, date, icon, title)).join("\n                  ")}\n                </aside>\n                <div class="sections">\n                  ${sources.map(([id, icon, title, sourceUrl, items]) => renderSection(id, date, icon, title, sourceUrl, items)).join("\n                  ")}\n                </div>\n              </div>\n            </div>\n          </div>\n        </article>\n        <!-- ISSUE_END:${date} -->`;
 }
@@ -196,7 +213,9 @@ function renderItem(item, rank) {
     ? `<span>${languageIcon(item.language)}${escape(item.language || "Unknown")}</span><span><i class="star" aria-hidden="true">★</i> ${escape(item.stars)}</span>`
     : item.source === "hn" || item.source === "hf"
       ? `<span aria-label="${item.source === "hf" ? item.upvotes : item.points} ${item.source === "hf" ? "upvotes" : "points"}"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.source === "hf" ? item.upvotes : item.points}</span><span aria-label="${item.comments} comments"><img class="meta-icon" src="assets/icon-comments.svg" alt="" aria-hidden="true" />${item.comments}</span>`
-      : `<span aria-label="${item.votes} votes"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.votes}</span>`;
+      : item.source === "openrouter"
+        ? `<span aria-label="${formatContext(item.contextLength)} context"><img class="meta-icon" src="assets/icon-code.svg" alt="" aria-hidden="true" />${formatContext(item.contextLength)} context</span><span>weekly usage</span>`
+        : `<span aria-label="${item.votes} votes"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.votes}</span>`;
   return `                    <article class="item">\n                      <a class="item-title" href="${escape(item.url)}" target="_blank" rel="noreferrer"><span class="rank">#${String(rank).padStart(2, "0")}</span><span>${escape(item.title)}</span></a>\n                      <div class="meta">${meta}</div>\n                      <p>${escape(item.description)}</p>\n                    </article>`;
 }
 
@@ -210,6 +229,12 @@ function languageIcon(language = "") {
   };
   const icon = icons[language];
   return icon ? `<img class="language-icon" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/${icon}" alt="" aria-hidden="true" />` : "";
+}
+
+function formatContext(value) {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value % 1_000_000 ? 1 : 0)}M`;
+  if (value >= 1_000) return `${Math.round(value / 1_000)}K`;
+  return String(value);
 }
 
 function replaceIssues(html, issue, currentDate) {

@@ -2,11 +2,11 @@
 
 [中文](README.md)
 
-A static daily briefing that collects the top 10 items from GitHub Trending, Hacker News, Product Hunt, and Hugging Face Papers.
+A static daily briefing that collects the top 10 items from GitHub Trending, Hacker News, Product Hunt, Hugging Face Papers, and OpenRouter Rankings.
 
 ## Deployment and scheduled updates
 
-Flow: GitHub Actions fetches four top-10 lists every day at 07:30 Asia/Shanghai, updates `index.html`, and commits the result. Vercel watches new commits on `main` and deploys them automatically. No remote server, cron job, or Vercel token is required.
+Flow: GitHub Actions fetches five top-10 lists every day at 07:30 Asia/Shanghai, updates `index.html`, and commits the result. Vercel watches new commits on `main` and deploys them automatically. No remote server, cron job, or Vercel token is required.
 
 Initial setup:
 

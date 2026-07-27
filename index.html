@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Daily Stack</title>
-    <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="assets/daily-stack-mark.svg" />
+    <link rel="apple-touch-icon" href="assets/daily-stack-mark.svg" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-regular.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lxgw-wenkai-webfont@1.7.0/lxgwwenkai-bold.css" />
@@ -128,8 +128,8 @@
 
       .document-layout {
         display: grid;
-        grid-template-columns: 176px minmax(0, 1fr);
-        gap: 26px;
+        grid-template-columns: 198px minmax(0, 1fr);
+        gap: 24px;
         width: min(1000px, calc(100% - 36px));
         margin: 0 auto;
         padding: 32px 0 72px;
@@ -139,7 +139,7 @@
         position: sticky;
         top: 30px;
         align-self: start;
-        padding: 16px 12px;
+        padding: 14px 10px;
         border-radius: 16px;
         background: rgba(240, 242, 234, .62);
       }
@@ -156,11 +156,12 @@
       .contents a {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 9px 10px;
+        gap: 7px;
+        padding: 8px;
         border-radius: 10px;
         color: var(--muted);
-        font-size: .8rem;
+        font-size: .76rem;
+        white-space: nowrap;
         text-decoration: none;
         transition: color .18s ease, background .18s ease;
       }

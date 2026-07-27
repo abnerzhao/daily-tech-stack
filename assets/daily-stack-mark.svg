@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="The Daily Stack">
+  <rect width="64" height="64" rx="16" fill="#F7F3E8"/>
+  <path d="M13 21.5 37 16l11 8v23.5L24 53l-11-8z" fill="#DCE7D8" stroke="#1F5F4B" stroke-linejoin="round" stroke-width="2.5"/>
+  <path d="m17 16 24-5 10 8v23L27 47l-10-8z" fill="#FFFDF6" stroke="#1F5F4B" stroke-linejoin="round" stroke-width="2.5"/>
+  <path d="M24 25h15M24 31h12M24 37h8" fill="none" stroke="#1F5F4B" stroke-linecap="round" stroke-width="2.5"/>
+  <path d="M44 11c4 1.5 6.5 4.5 7.5 8.5M47.5 7.5c5.5 2 9 6.5 10 12" fill="none" stroke="#D89622" stroke-linecap="round" stroke-width="2.5"/>
+  <circle cx="42" cy="14" r="2.4" fill="#D89622"/>
+</svg>

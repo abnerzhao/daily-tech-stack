@@ -1,5 +1,7 @@
 # The Daily Stack
 
+[English](README.en.md)
+
 每天汇总 GitHub Trending、Hacker News 与 Product Hunt 的静态技术日报。
 
 ## 部署与自动更新

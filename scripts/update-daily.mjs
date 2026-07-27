@@ -17,22 +17,23 @@ if (process.argv.includes("--help")) {
   process.exit(0);
 }
 
-const [github, hackerNews, productHunt] = await Promise.all([
+const [github, hackerNews, productHunt, huggingFace] = await Promise.all([
   fetchGithubTrending(),
   fetchHackerNews(),
   fetchProductHunt(),
+  fetchHuggingFacePapers(),
 ]);
 
-const descriptions = await describeInChinese([...github, ...hackerNews, ...productHunt]);
-for (const item of [...github, ...hackerNews, ...productHunt]) {
+const descriptions = await describeInChinese([...github, ...hackerNews, ...productHunt, ...huggingFace]);
+for (const item of [...github, ...hackerNews, ...productHunt, ...huggingFace]) {
   item.description = descriptions.get(item.key) ?? fallbackDescription(item);
 }
 
 const html = await readFile(outputPath, "utf8");
-const issue = renderIssue({ date, github, hackerNews, productHunt });
+const issue = renderIssue({ date, github, hackerNews, productHunt, huggingFace });
 const updated = replaceIssues(html, issue, date);
 await writeFile(outputPath, updated);
-console.log(`Updated ${date}: 30 signals`);
+console.log(`Updated ${date}: 40 signals`);
 
 function getOption(name) {
   const index = process.argv.indexOf(name);
@@ -118,6 +119,27 @@ async function fetchProductHunt() {
   }));
 }
 
+async function fetchHuggingFacePapers() {
+  const url = `https://huggingface.co/api/daily_papers?p=0&limit=10&date=${date}&sort=trending`;
+  const entries = await (await request(url)).json();
+  if (!Array.isArray(entries) || entries.length < 10) {
+    throw new Error("Hugging Face Daily Papers returned fewer than 10 papers");
+  }
+  return entries.slice(0, 10).map((entry, index) => {
+    const paper = entry.paper ?? entry;
+    if (!paper.id || !paper.title) throw new Error("Unable to parse a Hugging Face paper");
+    return {
+      key: `hf-${index}`,
+      source: "hf",
+      title: paper.title,
+      url: `https://huggingface.co/papers/${paper.id}`,
+      upvotes: paper.upvotes ?? 0,
+      comments: entry.numComments ?? paper.numComments ?? 0,
+      context: paper.ai_summary ?? paper.summary ?? "Hugging Face Daily Paper",
+    };
+  });
+}
+
 async function describeInChinese(items) {
   if (!process.env.OPENROUTER_API_KEY) return new Map();
   const payload = items.map(({ key, source, title, context }) => ({ key, source, title, context }));
@@ -146,13 +168,19 @@ async function describeInChinese(items) {
 }
 
 function fallbackDescription(item) {
-  const label = { github: "开源项目", hn: "技术文章", ph: "新产品" }[item.source];
+  const label = { github: "开源项目", hn: "技术文章", ph: "新产品", hf: "AI 论文" }[item.source];
   return `今日热门${label}，建议查看原始页面了解实现与讨论。`;
 }
 
-function renderIssue({ date, github, hackerNews, productHunt }) {
+function renderIssue({ date, github, hackerNews, productHunt, huggingFace }) {
   const label = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Shanghai" }).format(new Date(`${date}T12:00:00+08:00`));
-  return `<!-- ISSUE_START:${date} -->\n        <article class="card active" data-order="0" data-day="${date}">\n          <div class="card-shell">\n            <header class="card-head">Today · ${label}</header>\n            <div class="document">\n              <div class="document-layout">\n                <aside class="contents" aria-label="Contents">\n                  <p class="contents-title">Contents</p>\n                  ${toc("github", date, "github.svg", "GitHub Trending")}\n                  ${toc("hacker-news", date, "hacker-news.svg", "Hacker News")}\n                  ${toc("product-hunt", date, "product-hunt.svg", "Product Hunt")}\n                </aside>\n                <div class="sections">\n                  ${renderSection("github", date, "github.svg", "GitHub Trending", "https://github.com/trending", github)}\n                  ${renderSection("hacker-news", date, "hacker-news.svg", "Hacker News", "https://news.ycombinator.com/", hackerNews)}\n                  ${renderSection("product-hunt", date, "product-hunt.svg", "Product Hunt", "https://www.producthunt.com/", productHunt)}\n                </div>\n              </div>\n            </div>\n          </div>\n        </article>\n        <!-- ISSUE_END:${date} -->`;
+  const sources = [
+    ["github", "github.svg", "GitHub Trending", "https://github.com/trending", github],
+    ["hacker-news", "hacker-news.svg", "Hacker News", "https://news.ycombinator.com/", hackerNews],
+    ["product-hunt", "product-hunt.svg", "Product Hunt", "https://www.producthunt.com/", productHunt],
+    ["hugging-face-papers", "hugging-face.svg", "Hugging Face Papers", "https://huggingface.co/papers", huggingFace],
+  ];
+  return `<!-- ISSUE_START:${date} -->\n        <article class="card active" data-order="0" data-day="${date}">\n          <div class="card-shell">\n            <header class="card-head">Today · ${label}</header>\n            <div class="document">\n              <div class="document-layout">\n                <aside class="contents" aria-label="Contents">\n                  <p class="contents-title">Contents</p>\n                  ${sources.map(([id, icon, title]) => toc(id, date, icon, title)).join("\\n                  ")}\n                </aside>\n                <div class="sections">\n                  ${sources.map(([id, icon, title, sourceUrl, items]) => renderSection(id, date, icon, title, sourceUrl, items)).join("\\n                  ")}\n                </div>\n              </div>\n            </div>\n          </div>\n        </article>\n        <!-- ISSUE_END:${date} -->`;
 }
 
 function toc(id, date, icon, title) {
@@ -166,8 +194,8 @@ function renderSection(id, date, icon, title, sourceUrl, items) {
 function renderItem(item, rank) {
   const meta = item.source === "github"
     ? `<span>${languageIcon(item.language)}${escape(item.language || "Unknown")}</span><span><i class="star" aria-hidden="true">★</i> ${escape(item.stars)}</span>`
-    : item.source === "hn"
-      ? `<span aria-label="${item.points} points"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.points}</span><span aria-label="${item.comments} comments"><img class="meta-icon" src="assets/icon-comments.svg" alt="" aria-hidden="true" />${item.comments}</span>`
+    : item.source === "hn" || item.source === "hf"
+      ? `<span aria-label="${item.source === "hf" ? item.upvotes : item.points} ${item.source === "hf" ? "upvotes" : "points"}"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.source === "hf" ? item.upvotes : item.points}</span><span aria-label="${item.comments} comments"><img class="meta-icon" src="assets/icon-comments.svg" alt="" aria-hidden="true" />${item.comments}</span>`
       : `<span aria-label="${item.votes} votes"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.votes}</span>`;
   return `                    <article class="item">\n                      <a class="item-title" href="${escape(item.url)}" target="_blank" rel="noreferrer"><span class="rank">#${String(rank).padStart(2, "0")}</span><span>${escape(item.title)}</span></a>\n                      <div class="meta">${meta}</div>\n                      <p>${escape(item.description)}</p>\n                    </article>`;
 }

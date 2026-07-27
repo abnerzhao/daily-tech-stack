@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Hugging Face">
+  <rect width="48" height="48" rx="12" fill="#FFD21E"/>
+  <circle cx="17" cy="22" r="2.5" fill="#362B00"/>
+  <circle cx="31" cy="22" r="2.5" fill="#362B00"/>
+  <path d="M15 29c2.6 4.2 15.4 4.2 18 0" fill="none" stroke="#362B00" stroke-linecap="round" stroke-width="3"/>
+  <path d="M7 27c3-2 5.2-.8 6 2M41 27c-3-2-5.2-.8-6 2" fill="none" stroke="#362B00" stroke-linecap="round" stroke-width="3"/>
+</svg>

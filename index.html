@@ -128,8 +128,8 @@
 
       .document-layout {
         display: grid;
-        grid-template-columns: 198px minmax(0, 1fr);
-        gap: 24px;
+        grid-template-columns: 212px minmax(0, 1fr);
+        gap: 28px;
         width: min(1000px, calc(100% - 36px));
         margin: 0 auto;
         padding: 32px 0 72px;
@@ -139,13 +139,15 @@
         position: sticky;
         top: 30px;
         align-self: start;
-        padding: 14px 10px;
+        display: grid;
+        gap: 4px;
+        padding: 18px 12px;
         border-radius: 16px;
         background: rgba(240, 242, 234, .62);
       }
 
       .contents-title {
-        margin: 0 0 10px;
+        margin: 0 0 12px;
         color: #a0a59b;
         font-size: .68rem;
         font-weight: 700;
@@ -156,11 +158,11 @@
       .contents a {
         display: flex;
         align-items: center;
-        gap: 7px;
-        padding: 8px;
+        gap: 8px;
+        padding: 10px;
         border-radius: 10px;
         color: var(--muted);
-        font-size: .76rem;
+        font-size: .75rem;
         white-space: nowrap;
         text-decoration: none;
         transition: color .18s ease, background .18s ease;

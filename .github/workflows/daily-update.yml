@@ -8,8 +8,8 @@ on:
         required: false
         type: string
   schedule:
-    # 07:30 Asia/Shanghai (UTC+8)
-    - cron: "30 23 * * *"
+    # 10:00 Asia/Shanghai (UTC+8)
+    - cron: "0 2 * * *"
 
 permissions:
   contents: write

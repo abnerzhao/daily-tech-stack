@@ -6,7 +6,7 @@
 
 ## 部署与自动更新
 
-流程：GitHub Actions 每天北京时间 07:30 抓取五个来源的 Top 10 并提交 `index.html`；Vercel 监听 `main` 的新提交并自动部署。无需远程服务器、cron 或 Vercel Token。
+流程：GitHub Actions 每天北京时间 10:00 抓取五个来源的 Top 10 并提交 `index.html`；Vercel 监听 `main` 的新提交并自动部署。无需远程服务器、cron 或 Vercel Token。
 
 Hugging Face 当天论文流尚未就绪时，任务会自动回退到最新可用的 Daily Papers，不会中断整份日报更新。
 

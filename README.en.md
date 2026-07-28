@@ -6,7 +6,7 @@ A static daily briefing that collects the top 10 items from GitHub Trending, Hac
 
 ## Deployment and scheduled updates
 
-Flow: GitHub Actions fetches five top-10 lists every day at 07:30 Asia/Shanghai, updates `index.html`, and commits the result. Vercel watches new commits on `main` and deploys them automatically. No remote server, cron job, or Vercel token is required.
+Flow: GitHub Actions fetches five top-10 lists every day at 10:00 Asia/Shanghai, updates `index.html`, and commits the result. Vercel watches new commits on `main` and deploys them automatically. No remote server, cron job, or Vercel token is required.
 
 If Hugging Face has not published a feed for the current day yet, the task automatically falls back to the latest available Daily Papers instead of failing the entire update.
 

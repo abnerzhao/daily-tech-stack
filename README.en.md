@@ -10,6 +10,8 @@ Flow: GitHub Actions fetches five top-10 lists every day at 07:30 Asia/Shanghai,
 
 If Hugging Face has not published a feed for the current day yet, the task automatically falls back to the latest available Daily Papers instead of failing the entire update.
 
+If Product Hunt has fewer than 10 launches for the current day, the task falls back to the most recent complete daily ranking.
+
 Initial setup:
 
 1. In the GitHub repository, add `PRODUCT_HUNT_TOKEN` under `Settings > Secrets and variables > Actions`. This is required and should contain a Product Hunt API Access Token.

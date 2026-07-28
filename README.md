@@ -10,6 +10,8 @@
 
 Hugging Face 当天论文流尚未就绪时，任务会自动回退到最新可用的 Daily Papers，不会中断整份日报更新。
 
+Product Hunt 当天发布不足 10 项时，任务会回退到最近一个完整的日榜。
+
 首次部署：
 
 1. 在 GitHub 仓库 `Settings > Secrets and variables > Actions` 添加 `PRODUCT_HUNT_TOKEN`（必需，Product Hunt API Access Token）。

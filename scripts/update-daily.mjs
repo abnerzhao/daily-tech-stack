@@ -97,8 +97,19 @@ async function fetchProductHunt() {
   if (!process.env.PRODUCT_HUNT_TOKEN) {
     throw new Error("PRODUCT_HUNT_TOKEN is required to fetch Product Hunt. Add it to GitHub Actions secrets.");
   }
-  const dayStart = new Date(`${date}T00:00:00+08:00`).toISOString();
-  const query = `query { posts(first: 10, order: VOTES, postedAfter: "${dayStart}") { edges { node { name tagline votesCount slug website } } } }`;
+  const requestedStart = new Date(`${date}T00:00:00+08:00`);
+  for (let offset = 0; offset < 7; offset += 1) {
+    const dayStart = new Date(requestedStart.getTime() - offset * 86_400_000);
+    const dayEnd = new Date(dayStart.getTime() + 86_400_000);
+    const posts = await fetchProductHuntDay(dayStart, dayEnd);
+    if (posts.length >= 10) return formatProductHuntPosts(posts);
+    console.warn(`Product Hunt has only ${posts.length} posts for ${dayStart.toISOString().slice(0, 10)}; checking the previous day.`);
+  }
+  throw new Error("Product Hunt returned fewer than 10 products for the last 7 days");
+}
+
+async function fetchProductHuntDay(dayStart, dayEnd) {
+  const query = `query { posts(first: 10, order: VOTES, postedAfter: "${dayStart.toISOString()}", postedBefore: "${dayEnd.toISOString()}") { edges { node { name tagline votesCount slug website } } } }`;
   const response = await request("https://api.producthunt.com/v2/api/graphql", {
     method: "POST",
     headers: {
@@ -109,8 +120,10 @@ async function fetchProductHunt() {
   });
   const result = await response.json();
   if (result.errors?.length) throw new Error(`Product Hunt API: ${result.errors[0].message}`);
-  const posts = result.data?.posts?.edges?.map((edge) => edge.node) ?? [];
-  if (posts.length < 10) throw new Error("Product Hunt returned fewer than 10 products");
+  return result.data?.posts?.edges?.map((edge) => edge.node) ?? [];
+}
+
+function formatProductHuntPosts(posts) {
   return posts.slice(0, 10).map((post, index) => ({
     key: `ph-${index}`,
     source: "ph",

@@ -173,6 +173,8 @@ async function fetchOpenRouterRankings() {
     title: model.name,
     url: `https://openrouter.ai/${model.id}`,
     contextLength: model.context_length ?? 0,
+    inputPrice: model.pricing?.prompt ?? "0",
+    outputPrice: model.pricing?.completion ?? "0",
     context: model.description ?? "OpenRouter weekly model usage ranking",
   }));
 }
@@ -236,7 +238,7 @@ function renderItem(item, rank) {
     : item.source === "hn" || item.source === "hf"
       ? `<span aria-label="${item.source === "hf" ? item.upvotes : item.points} ${item.source === "hf" ? "upvotes" : "points"}"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.source === "hf" ? item.upvotes : item.points}</span><span aria-label="${item.comments} comments"><img class="meta-icon" src="assets/icon-comments.svg" alt="" aria-hidden="true" />${item.comments}</span>`
       : item.source === "openrouter"
-        ? `<span aria-label="${formatContext(item.contextLength)} context"><img class="meta-icon" src="assets/icon-code.svg" alt="" aria-hidden="true" />${formatContext(item.contextLength)} context</span><span>weekly usage</span>`
+        ? `<span aria-label="${formatContext(item.contextLength)} context"><img class="meta-icon" src="assets/icon-code.svg" alt="" aria-hidden="true" />${formatContext(item.contextLength)} context</span><span>Input ${formatPricePerMillion(item.inputPrice)}/M</span><span>Output ${formatPricePerMillion(item.outputPrice)}/M</span>`
         : `<span aria-label="${item.votes} votes"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.votes}</span>`;
   return `                    <article class="item">\n                      <a class="item-title" href="${escape(item.url)}" target="_blank" rel="noreferrer"><span class="rank">#${String(rank).padStart(2, "0")}</span><span>${escape(item.title)}</span></a>\n                      <div class="meta">${meta}</div>\n                      <p>${escape(item.description)}</p>\n                    </article>`;
 }
@@ -254,9 +256,17 @@ function languageIcon(language = "") {
 }
 
 function formatContext(value) {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(value % 1_000_000 ? 1 : 0)}M`;
+  if (value >= 1_000_000) return `${Number((value / 1_000_000).toFixed(1))}M`;
   if (value >= 1_000) return `${Math.round(value / 1_000)}K`;
   return String(value);
+}
+
+function formatPricePerMillion(value) {
+  const price = Number(value) * 1_000_000;
+  if (!Number.isFinite(price) || price <= 0) return "$0";
+  if (price < 0.01) return "<$0.01";
+  if (price < 1) return `$${price.toFixed(2)}`;
+  return `$${price.toFixed(price % 1 ? 2 : 0)}`;
 }
 
 function replaceIssues(html, issue, currentDate, today) {

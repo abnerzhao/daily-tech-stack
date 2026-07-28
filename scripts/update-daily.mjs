@@ -6,12 +6,13 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const outputPath = resolve(root, "index.html");
 const requestedDate = getOption("--date") ?? process.env.ISSUE_DATE;
-const date = requestedDate || new Intl.DateTimeFormat("en-CA", {
+const today = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Shanghai",
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
 }).format(new Date());
+const date = requestedDate || today;
 
 if (process.argv.includes("--help")) {
   console.log("Usage: node scripts/update-daily.mjs [--date YYYY-MM-DD]");
@@ -33,7 +34,7 @@ for (const item of [...github, ...hackerNews, ...productHunt, ...huggingFace, ..
 
 const html = await readFile(outputPath, "utf8");
 const issue = renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter });
-const updated = replaceIssues(html, issue, date);
+const updated = replaceIssues(html, issue, date, today);
 await writeFile(outputPath, updated);
 console.log(`Updated ${date}: 50 signals`);
 
@@ -218,7 +219,7 @@ function renderIssue({ date, github, hackerNews, productHunt, huggingFace, openR
     ["hugging-face-papers", "hugging-face.svg", "Hugging Face Papers", "https://huggingface.co/papers", huggingFace],
     ["openrouter-rankings", "openrouter.svg", "OpenRouter Rankings", "https://openrouter.ai/rankings/", openRouter],
   ];
-  return `<!-- ISSUE_START:${date} -->\n        <article class="card active" data-order="0" data-day="${date}">\n          <div class="card-shell">\n            <header class="card-head">Today · ${label}</header>\n            <div class="document">\n              <div class="document-layout">\n                <aside class="contents" aria-label="Contents">\n                  <p class="contents-title">Contents</p>\n                  ${sources.map(([id, icon, title]) => toc(id, date, icon, title)).join("\n                  ")}\n                </aside>\n                <div class="sections">\n                  ${sources.map(([id, icon, title, sourceUrl, items]) => renderSection(id, date, icon, title, sourceUrl, items)).join("\n                  ")}\n                </div>\n              </div>\n            </div>\n          </div>\n        </article>\n        <!-- ISSUE_END:${date} -->`;
+  return `<!-- ISSUE_START:${date} -->\n        <article class="card" data-order="0" data-day="${date}">\n          <div class="card-shell">\n            <header class="card-head">${label}</header>\n            <div class="document">\n              <div class="document-layout">\n                <aside class="contents" aria-label="Contents">\n                  <p class="contents-title">Contents</p>\n                  ${sources.map(([id, icon, title]) => toc(id, date, icon, title)).join("\n                  ")}\n                </aside>\n                <div class="sections">\n                  ${sources.map(([id, icon, title, sourceUrl, items]) => renderSection(id, date, icon, title, sourceUrl, items)).join("\n                  ")}\n                </div>\n              </div>\n            </div>\n          </div>\n        </article>\n        <!-- ISSUE_END:${date} -->`;
 }
 
 function toc(id, date, icon, title) {
@@ -258,20 +259,28 @@ function formatContext(value) {
   return String(value);
 }
 
-function replaceIssues(html, issue, currentDate) {
+function replaceIssues(html, issue, currentDate, today) {
   const start = "<!-- ISSUES_START -->";
   const end = "<!-- ISSUES_END -->";
   const startIndex = html.indexOf(start);
   const endIndex = html.indexOf(end);
   if (startIndex === -1 || endIndex === -1) throw new Error("Issue markers are missing from index.html");
   const issueArea = html.slice(startIndex + start.length, endIndex);
-  const blocks = [...issueArea.matchAll(/<!-- ISSUE_START:([^ ]+) -->([\s\S]*?)<!-- ISSUE_END:\1 -->/g)]
-    .filter((match) => match[1] !== currentDate)
-    .map((match, index) => match[0]
-      .replace('class="card active"', 'class="card"')
-      .replace(/data-order="\d+"/, `data-order="${index + 1}"`)
-      .replace("Today · ", ""));
-  return `${html.slice(0, startIndex + start.length)}\n        ${issue}\n\n        ${blocks.join("\n\n        ")}\n        ${html.slice(endIndex)}`;
+  const blocksByDate = new Map(
+    [...issueArea.matchAll(/<!-- ISSUE_START:([^ ]+) -->([\s\S]*?)<!-- ISSUE_END:\1 -->/g)]
+      .map((match) => [match[1], match[0]]),
+  );
+  blocksByDate.set(currentDate, issue);
+
+  const blocks = [...blocksByDate.entries()].sort(([left], [right]) => right.localeCompare(left));
+  const activeDate = blocksByDate.has(today) ? today : blocks[0]?.[0];
+  const normalized = blocks.map(([issueDate, block], index) => block
+    .replace(/class="card(?: active)?"/, `class="card${issueDate === activeDate ? " active" : ""}"`)
+    .replace(/data-order="\d+"/, `data-order="${index}"`)
+    .replace(/<header class="card-head">(?:Today · )?([^<]+)<\/header>/, (_match, label) => (
+      `<header class="card-head">${issueDate === activeDate && issueDate === today ? "Today · " : ""}${label}</header>`
+    )));
+  return `${html.slice(0, startIndex + start.length)}\n        ${normalized.join("\n\n        ")}\n        ${html.slice(endIndex)}`;
 }
 
 function textFrom(value = "") {

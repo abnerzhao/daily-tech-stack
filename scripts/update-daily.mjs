@@ -272,10 +272,10 @@ function replaceIssues(html, issue, currentDate, today) {
   );
   blocksByDate.set(currentDate, issue);
 
-  // Keep the static page small; older issues remain available in git history.
+  // Keep two weeks of genuine daily snapshots; older issues remain in git history.
   const blocks = [...blocksByDate.entries()]
     .sort(([left], [right]) => right.localeCompare(left))
-    .slice(0, 3);
+    .slice(0, 14);
   const activeDate = blocks.some(([issueDate]) => issueDate === today) ? today : blocks[0]?.[0];
   const normalized = blocks.map(([issueDate, block], index) => block
     .replace(/class="card(?: active)?"/, `class="card${issueDate === activeDate ? " active" : ""}"`)

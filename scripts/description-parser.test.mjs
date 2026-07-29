@@ -21,3 +21,16 @@ test("parses line-based fallback output", () => {
     ["hn-0", "技术讨论热度高。"],
   ]));
 });
+
+test("parses Markdown list, table, and split-line output", () => {
+  const content = "1. **github-0**: **开源项目，值得关注。**\n| hn-0 | 技术讨论热度高。 |";
+  assert.deepEqual(parseDescriptions(content, keys), new Map([
+    ["github-0", "开源项目，值得关注。"],
+    ["hn-0", "技术讨论热度高。"],
+  ]));
+});
+
+test("parses a key followed by its description on the next line", () => {
+  const content = "`github-0`\n开源项目，值得关注。";
+  assert.deepEqual(parseDescriptions(content, keys), new Map([["github-0", "开源项目，值得关注。"]]));
+});

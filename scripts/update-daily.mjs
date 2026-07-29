@@ -233,6 +233,8 @@ async function describeBatch(items) {
 
 function fallbackDescription(item) {
   if (item.source === "openrouter") return "近一周 Token 使用量靠前的模型，适合观察真实采用趋势。";
+  if (item.source === "github") return `${item.title} 是今日热门${item.language || "开源"}项目，值得关注其实现与社区反馈。`;
+  if (item.source === "ph") return `${item.title} 是今日热门新产品，值得了解其定位与用户反馈。`;
   const label = { github: "开源项目", hn: "技术文章", ph: "新产品", hf: "AI 论文" }[item.source];
   return `今日热门${label}，建议查看原始页面了解实现与讨论。`;
 }

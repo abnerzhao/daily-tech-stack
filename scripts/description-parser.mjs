@@ -4,11 +4,25 @@ export function parseDescriptions(content, expectedKeys) {
   if (json.size) return json;
 
   const lines = new Map();
+  let pendingKey = "";
   for (const rawLine of String(content).split(/\r?\n/)) {
-    const match = rawLine.trim().match(/^(?:[-*]\s*)?(?:\d+[.)]\s*)?([a-z][a-z-]*-\d+)\s*(?:\t+|[:：]\s*|[-—]\s+)(.+)$/i);
-    if (!match || !expected.has(match[1])) continue;
-    const description = cleanDescription(match[2]);
-    if (description) lines.set(match[1], description);
+    const line = rawLine.trim();
+    const match = line.match(/^(?:[-*]\s*)?(?:\d+[.)]\s*)?(?:\|\s*)?(?:["'`]|\*{1,2})?([a-z][a-z-]*-\d+)(?:["'`]|\*{1,2})?\s*(?:\t+|\|\s*|[:：]\s*|[-—]\s+)(.+?)(?:\s*\|)?$/i);
+    if (match && expected.has(match[1])) {
+      const description = cleanDescription(match[2]);
+      if (description) lines.set(match[1], description);
+      pendingKey = "";
+      continue;
+    }
+    const keyOnly = line.match(/^(?:[-*]\s*)?(?:\d+[.)]\s*)?(?:["'`]|\*{1,2})?([a-z][a-z-]*-\d+)(?:["'`]|\*{1,2})?$/i)?.[1];
+    if (keyOnly && expected.has(keyOnly)) {
+      pendingKey = keyOnly;
+      continue;
+    }
+    if (!pendingKey || !line) continue;
+    const description = cleanDescription(line);
+    if (description) lines.set(pendingKey, description);
+    pendingKey = "";
   }
   return lines;
 }
@@ -68,5 +82,5 @@ function extractBalancedJson(text, start) {
 }
 
 function cleanDescription(value) {
-  return typeof value === "string" ? value.trim().replace(/^['\"`]+|['\"`]+$/g, "") : "";
+  return typeof value === "string" ? value.trim().replace(/^(?:['\"`]+|\*+)|(?:['\"`]+|\*+)$/g, "") : "";
 }

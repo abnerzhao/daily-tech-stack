@@ -2,6 +2,7 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { parseDescriptions } from "./description-parser.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const outputPath = resolve(root, "index.html");
@@ -193,6 +194,12 @@ async function fetchOpenRouterRankings() {
 
 async function describeInChinese(items) {
   if (!process.env.OPENROUTER_API_KEY) return new Map();
+  const batches = Array.from({ length: Math.ceil(items.length / 10) }, (_, index) => items.slice(index * 10, index * 10 + 10));
+  const descriptions = await Promise.all(batches.map(describeBatch));
+  return new Map(descriptions.flatMap((batch) => [...batch]));
+}
+
+async function describeBatch(items) {
   try {
     const payload = items.map(({ key, source, title, context }) => ({ key, source, title, context }));
     const response = await request("https://openrouter.ai/api/v1/chat/completions", {
@@ -207,7 +214,7 @@ async function describeInChinese(items) {
         model: process.env.OPENROUTER_MODEL ?? "openrouter/free",
         temperature: 0.2,
         messages: [
-          { role: "system", content: "你是技术编辑。为每条内容写一句简洁中文简介，包含内容是什么及为什么值得看；每条不超过45个中文字符。只返回 JSON：{\\\"items\\\":[{\\\"key\\\":string,\\\"description\\\":string}]}。" },
+          { role: "system", content: "你是技术编辑。为每条内容写一句简洁中文简介，包含内容是什么及为什么值得看；每条不超过45个中文字符。按输入顺序逐行返回，格式为 key<TAB>description。不要返回 Markdown、JSON 或其他说明。" },
           { role: "user", content: JSON.stringify(payload) },
         ],
       }),
@@ -215,20 +222,13 @@ async function describeInChinese(items) {
     const result = await response.json();
     const content = result.choices?.[0]?.message?.content;
     if (!content) throw new Error("OpenRouter returned no descriptions");
-    const parsed = parseJsonObject(content);
-    return new Map((parsed.items ?? []).map((item) => [item.key, item.description]));
+    const descriptions = parseDescriptions(content, items.map((item) => item.key));
+    if (!descriptions.size) throw new Error("OpenRouter returned no parseable descriptions");
+    return descriptions;
   } catch (error) {
-    console.warn(`OpenRouter descriptions unavailable: ${error.message}; using fallback descriptions.`);
+    console.warn(`OpenRouter description batch unavailable: ${error.message}; using fallback descriptions for this batch.`);
     return new Map();
   }
-}
-
-function parseJsonObject(content) {
-  const text = String(content).trim();
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
-  const candidate = fenced ?? text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
-  if (!candidate) throw new Error("OpenRouter returned no JSON object");
-  return JSON.parse(candidate.trim());
 }
 
 function fallbackDescription(item) {

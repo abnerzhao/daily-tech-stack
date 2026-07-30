@@ -24,6 +24,10 @@ export function parseDescriptions(content, expectedKeys) {
     if (description) lines.set(pendingKey, description);
     pendingKey = "";
   }
+  if (lines.size || expected.size !== 1) return lines;
+
+  const plainText = cleanDescription(String(content).replace(/```(?:json)?\s*|```/gi, "").trim());
+  if (plainText && !/^[{[]/.test(plainText)) lines.set([...expected][0], plainText);
   return lines;
 }
 

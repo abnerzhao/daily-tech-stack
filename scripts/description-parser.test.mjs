@@ -34,3 +34,10 @@ test("parses a key followed by its description on the next line", () => {
   const content = "`github-0`\n开源项目，值得关注。";
   assert.deepEqual(parseDescriptions(content, keys), new Map([["github-0", "开源项目，值得关注。"]]));
 });
+
+test("accepts a plain single-item response", () => {
+  assert.deepEqual(
+    parseDescriptions("该项目通过低内存运行大模型，适合关注端侧推理。", ["hn-0"]),
+    new Map([["hn-0", "该项目通过低内存运行大模型，适合关注端侧推理。"]]),
+  );
+});

@@ -201,34 +201,51 @@ async function describeInChinese(items) {
 
 async function describeBatch(items) {
   try {
-    const payload = items.map(({ key, source, title, context }) => ({ key, source, title, context }));
-    const response = await request("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "content-type": "application/json",
-        "http-referer": "https://daily-tech-stack.vercel.app",
-        "x-openrouter-title": "The Daily Stack",
-      },
-      body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL ?? "openrouter/free",
-        temperature: 0.2,
-        messages: [
-          { role: "system", content: "你是技术编辑。为每条内容写一句简洁中文简介，包含内容是什么及为什么值得看；每条不超过45个中文字符。按输入顺序逐行返回，格式为 key<TAB>description。不要返回 Markdown、JSON 或其他说明。" },
-          { role: "user", content: JSON.stringify(payload) },
-        ],
-      }),
-    });
-    const result = await response.json();
-    const content = result.choices?.[0]?.message?.content;
-    if (!content) throw new Error("OpenRouter returned no descriptions");
-    const descriptions = parseDescriptions(content, items.map((item) => item.key));
-    if (!descriptions.size) throw new Error("OpenRouter returned no parseable descriptions");
-    return descriptions;
+    return await requestDescriptions(items);
   } catch (error) {
-    console.warn(`OpenRouter description batch unavailable: ${error.message}; using fallback descriptions for this batch.`);
-    return new Map();
+    if (!/no parseable descriptions|incomplete descriptions/.test(error.message)) {
+      console.warn(`OpenRouter description batch unavailable: ${error.message}; using fallback descriptions for this batch.`);
+      return new Map();
+    }
+    console.warn(`OpenRouter description batch format was invalid; retrying ${items.length} items individually.`);
+    const descriptions = await Promise.all(items.map(async (item) => {
+      try {
+        return await requestDescriptions([item]);
+      } catch (retryError) {
+        console.warn(`OpenRouter description unavailable for ${item.key}: ${retryError.message}; using fallback.`);
+        return new Map();
+      }
+    }));
+    return new Map(descriptions.flatMap((description) => [...description]));
   }
+}
+
+async function requestDescriptions(items) {
+  const payload = items.map(({ key, source, title, context }) => ({ key, source, title, context }));
+  const response = await request("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "content-type": "application/json",
+      "http-referer": "https://daily-tech-stack.vercel.app",
+      "x-openrouter-title": "The Daily Stack",
+    },
+    body: JSON.stringify({
+      model: process.env.OPENROUTER_MODEL ?? "openrouter/free",
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: "你是技术编辑。为每条内容写一句简洁中文简介，包含内容是什么及为什么值得看；每条不超过45个中文字符。按输入顺序逐行返回，格式为 key<TAB>description。不要返回 Markdown、JSON 或其他说明。" },
+        { role: "user", content: JSON.stringify(payload) },
+      ],
+    }),
+  });
+  const result = await response.json();
+  const content = result.choices?.[0]?.message?.content;
+  if (!content) throw new Error("OpenRouter returned no descriptions");
+  const descriptions = parseDescriptions(content, items.map((item) => item.key));
+  if (!descriptions.size) throw new Error("OpenRouter returned no parseable descriptions");
+  if (descriptions.size !== items.length) throw new Error("OpenRouter returned incomplete descriptions");
+  return descriptions;
 }
 
 function fallbackDescription(item) {

@@ -8,8 +8,9 @@ on:
         required: false
         type: string
   schedule:
-    # 10:00 Asia/Shanghai (UTC+8)
-    - cron: "0 2 * * *"
+    # 10:00 Asia/Shanghai
+    - cron: "0 10 * * *"
+      timezone: "Asia/Shanghai"
 
 permissions:
   contents: write

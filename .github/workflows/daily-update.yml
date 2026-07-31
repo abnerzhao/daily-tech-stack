@@ -8,9 +8,8 @@ on:
         required: false
         type: string
   schedule:
-    # 10:00 Asia/Shanghai
-    - cron: "0 10 * * *"
-      timezone: "Asia/Shanghai"
+    # 10:07 Asia/Shanghai (02:07 UTC). Avoid the hourly scheduling peak.
+    - cron: "7 2 * * *"
 
 permissions:
   contents: write

@@ -2,7 +2,6 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { parseBilibiliPopular } from "./bilibili-source.mjs";
 import { parseDescriptions } from "./description-parser.mjs";
 import { parseAppleTechEpisodes, parseAppleTechPodcasts } from "./podcast-sources.mjs";
 
@@ -22,27 +21,26 @@ if (process.argv.includes("--help")) {
   process.exit(0);
 }
 
-const [github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts, bilibili] = await Promise.all([
+const [github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts] = await Promise.all([
   fetchGithubTrending(),
   fetchHackerNews(),
   fetchProductHunt(),
   fetchHuggingFacePapers(),
   fetchOpenRouterRankings(),
   fetchTechPodcasts(),
-  fetchBilibiliPopular(),
 ]);
 
-const allItems = [...github, ...hackerNews, ...productHunt, ...huggingFace, ...openRouter, ...techPodcasts, ...bilibili];
+const allItems = [...github, ...hackerNews, ...productHunt, ...huggingFace, ...openRouter, ...techPodcasts];
 const descriptions = await describeInChinese(allItems);
 for (const item of allItems) {
   item.description = descriptions.get(item.key) ?? fallbackDescription(item);
 }
 
 const html = await readFile(outputPath, "utf8");
-const issue = renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts, bilibili });
+const issue = renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts });
 const updated = replaceIssues(html, issue, date, today);
 await writeFile(outputPath, updated);
-console.log(`Updated ${date}: 70 signals`);
+console.log(`Updated ${date}: 60 signals`);
 
 function getOption(name) {
   const index = process.argv.indexOf(name);
@@ -208,18 +206,6 @@ async function fetchTechPodcasts() {
   return episodes.slice(0, 10);
 }
 
-async function fetchBilibiliPopular() {
-  const response = await request("https://api.bilibili.com/x/web-interface/popular?ps=20&pn=1&web_location=333.934", {
-    headers: {
-      referer: "https://www.bilibili.com/",
-      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/138.0 Safari/537.36",
-    },
-  });
-  const videos = parseBilibiliPopular(await response.json());
-  if (videos.length < 10) throw new Error("Bilibili Popular returned fewer than 10 videos");
-  return videos.slice(0, 10);
-}
-
 async function describeInChinese(items) {
   if (!process.env.OPENROUTER_API_KEY) return new Map();
   const batches = Array.from({ length: Math.ceil(items.length / 10) }, (_, index) => items.slice(index * 10, index * 10 + 10));
@@ -283,12 +269,11 @@ function fallbackDescription(item) {
   if (item.source === "github") return `${item.title} 是今日热门${item.language || "开源"}项目，值得关注其实现与社区反馈。`;
   if (item.source === "ph") return `${item.title} 是今日热门新产品，值得了解其定位与用户反馈。`;
   if (item.source === "tech-podcast") return `${item.podcastName} 的最新单集，适合追踪英文科技话题。`;
-  if (item.source === "bilibili") return `${item.owner} 的热门视频，值得关注当日社区话题。`;
   const label = { github: "开源项目", hn: "技术文章", ph: "新产品", hf: "AI 论文" }[item.source];
   return `今日热门${label}，建议查看原始页面了解实现与讨论。`;
 }
 
-function renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts, bilibili }) {
+function renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts }) {
   const label = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Shanghai" }).format(new Date(`${date}T12:00:00+08:00`));
   const sources = [
     ["github", "github.svg", "GitHub Trending", "https://github.com/trending", github],
@@ -297,7 +282,6 @@ function renderIssue({ date, github, hackerNews, productHunt, huggingFace, openR
     ["hugging-face-papers", "hugging-face.svg", "Hugging Face Papers", "https://huggingface.co/papers", huggingFace],
     ["openrouter-rankings", "openrouter.svg", "OpenRouter Rankings", "https://openrouter.ai/rankings/", openRouter],
     ["tech-podcasts", "apple-podcasts.svg", "Apple Top Tech Podcasts", "https://podcasts.apple.com/us/charts?genre=1318", techPodcasts],
-    ["bilibili-popular", "bilibili.svg", "Bilibili Popular", "https://www.bilibili.com/v/popular/all", bilibili],
   ];
   return `<!-- ISSUE_START:${date} -->\n        <article class="card" data-order="0" data-day="${date}">\n          <div class="card-shell">\n            <header class="card-head">${label}</header>\n            <div class="document">\n              <div class="document-layout">\n                <aside class="contents" aria-label="Contents">\n                  <p class="contents-title">Contents</p>\n                  ${sources.map(([id, icon, title]) => toc(id, date, icon, title)).join("\n                  ")}\n                </aside>\n                <div class="sections">\n                  ${sources.map(([id, icon, title, sourceUrl, items]) => renderSection(id, date, icon, title, sourceUrl, items)).join("\n                  ")}\n                </div>\n              </div>\n            </div>\n          </div>\n        </article>\n        <!-- ISSUE_END:${date} -->`;
 }
@@ -319,9 +303,7 @@ function renderItem(item, rank) {
         ? `<span aria-label="${formatContext(item.contextLength)} context"><img class="meta-icon" src="assets/icon-code.svg" alt="" aria-hidden="true" />${formatContext(item.contextLength)} context</span><span>Input ${formatPricePerMillion(item.inputPrice)}/M</span><span>Output ${formatPricePerMillion(item.outputPrice)}/M</span>`
         : item.source === "tech-podcast"
           ? `<span>${escape(item.podcastName)}</span>${item.releasedAt ? `<span><img class="meta-icon" src="assets/icon-clock.svg" alt="" aria-hidden="true" />${escape(item.releasedAt)}</span>` : ""}<span>${item.duration} min</span>`
-          : item.source === "bilibili"
-            ? `<span>UP 主: ${escape(item.owner)}</span><span>发布时间: ${escape(item.publishedAt)}</span>`
-            : `<span aria-label="${item.votes} votes"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.votes}</span>`;
+          : `<span aria-label="${item.votes} votes"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.votes}</span>`;
   return `                    <article class="item">\n                      <a class="item-title" href="${escape(item.url)}" target="_blank" rel="noreferrer"><span class="rank">#${String(rank).padStart(2, "0")}</span><span>${escape(item.title)}</span></a>\n                      <div class="meta">${meta}</div>\n                      <p>${escape(item.description)}</p>\n                    </article>`;
 }
 

@@ -2,11 +2,11 @@
 
 [中文](README.md)
 
-A static daily briefing that collects the top 10 items from GitHub Trending, Hacker News, Product Hunt, Hugging Face Papers, OpenRouter Rankings, English technology podcast episodes, and Bilibili Popular.
+A static daily briefing that collects the top 10 items from GitHub Trending, Hacker News, Product Hunt, Hugging Face Papers, OpenRouter Rankings, and English technology podcast episodes.
 
 ## Deployment and scheduled updates
 
-Flow: GitHub Actions fetches seven top-10 lists every day at 10:00 Asia/Shanghai, updates `index.html`, and commits the result. Vercel watches new commits on `main` and deploys them automatically. No remote server, cron job, or Vercel token is required.
+Flow: GitHub Actions fetches six top-10 lists every day at 10:00 Asia/Shanghai, updates `index.html`, and commits the result. Vercel watches new commits on `main` and deploys them automatically. No remote server, cron job, or Vercel token is required.
 
 The English technology section ranks shows using the Apple Podcasts U.S. Technology chart, then displays each ranked show's latest episode, release date, and duration.
 

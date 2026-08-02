@@ -59,6 +59,8 @@ test("matches each ranked show with its latest episode", () => {
     title: "Open Model Wars",
     url: "https://podcasts.apple.com/us/podcast/id1528594034?i=1000779262027",
     podcastName: "Hard Fork",
+    spotifyUrl: "https://open.spotify.com/search/Hard%20Fork%20Open%20Model%20Wars",
+    youtubeUrl: "https://www.youtube.com/results?search_query=Hard%20Fork%20Open%20Model%20Wars",
     releasedAt: "Jul 31, 2026",
     duration: 67,
     context: "A weekly technology podcast.",

@@ -281,7 +281,7 @@ function renderIssue({ date, github, hackerNews, productHunt, huggingFace, openR
     ["product-hunt", "product-hunt.svg", "Product Hunt", "https://www.producthunt.com/", productHunt],
     ["hugging-face-papers", "hugging-face.svg", "Hugging Face Papers", "https://huggingface.co/papers", huggingFace],
     ["openrouter-rankings", "openrouter.svg", "OpenRouter Rankings", "https://openrouter.ai/rankings/", openRouter],
-    ["tech-podcasts", "apple-podcasts.svg", "Apple Top Tech Podcasts", "https://podcasts.apple.com/us/charts?genre=1318", techPodcasts],
+    ["tech-podcasts", "apple-podcasts.svg", "Apple Tech Podcasts", "https://podcasts.apple.com/us/charts?genre=1318", techPodcasts],
   ];
   return `<!-- ISSUE_START:${date} -->\n        <article class="card" data-order="0" data-day="${date}">\n          <div class="card-shell">\n            <header class="card-head">${label}</header>\n            <div class="document">\n              <div class="document-layout">\n                <aside class="contents" aria-label="Contents">\n                  <p class="contents-title">Contents</p>\n                  ${sources.map(([id, icon, title]) => toc(id, date, icon, title)).join("\n                  ")}\n                </aside>\n                <div class="sections">\n                  ${sources.map(([id, icon, title, sourceUrl, items]) => renderSection(id, date, icon, title, sourceUrl, items)).join("\n                  ")}\n                </div>\n              </div>\n            </div>\n          </div>\n        </article>\n        <!-- ISSUE_END:${date} -->`;
 }
@@ -302,9 +302,13 @@ function renderItem(item, rank) {
       : item.source === "openrouter"
         ? `<span aria-label="${formatContext(item.contextLength)} context"><img class="meta-icon" src="assets/icon-code.svg" alt="" aria-hidden="true" />${formatContext(item.contextLength)} context</span><span>Input ${formatPricePerMillion(item.inputPrice)}/M</span><span>Output ${formatPricePerMillion(item.outputPrice)}/M</span>`
         : item.source === "tech-podcast"
-          ? `<span>${escape(item.podcastName)}</span>${item.releasedAt ? `<span><img class="meta-icon" src="assets/icon-clock.svg" alt="" aria-hidden="true" />${escape(item.releasedAt)}</span>` : ""}<span>${item.duration} min</span>`
+          ? `<span>${escape(item.podcastName)}</span>${item.releasedAt ? `<span><img class="meta-icon" src="assets/icon-clock.svg" alt="" aria-hidden="true" />${escape(item.releasedAt)}</span>` : ""}<span>${item.duration} min</span>${podcastPlatformLinks(item)}`
           : `<span aria-label="${item.votes} votes"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.votes}</span>`;
   return `                    <article class="item">\n                      <a class="item-title" href="${escape(item.url)}" target="_blank" rel="noreferrer"><span class="rank">#${String(rank).padStart(2, "0")}</span><span>${escape(item.title)}</span></a>\n                      <div class="meta">${meta}</div>\n                      <p>${escape(item.description)}</p>\n                    </article>`;
+}
+
+function podcastPlatformLinks(item) {
+  return `<span class="podcast-links"><a class="podcast-link" href="${escape(item.spotifyUrl)}" target="_blank" rel="noreferrer" aria-label="Search this episode on Spotify" title="Spotify"><img src="assets/spotify.svg" alt="" aria-hidden="true" /></a><a class="podcast-link" href="${escape(item.youtubeUrl)}" target="_blank" rel="noreferrer" aria-label="Search this episode on YouTube" title="YouTube"><img src="assets/youtube.svg" alt="" aria-hidden="true" /></a></span>`;
 }
 
 function languageIcon(language = "") {

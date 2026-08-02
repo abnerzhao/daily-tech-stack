@@ -39,12 +39,21 @@ export function parseAppleTechEpisodes(chartPayload, lookupPayload) {
       title: episode.trackName,
       url: episode.trackViewUrl,
       podcastName: episode.collectionName ?? show.title,
+      ...platformSearchUrls(episode.collectionName ?? show.title, episode.trackName),
       releasedAt: formatReleaseDate(episode.releaseDate),
       duration: Math.max(1, Math.round((Number(episode.trackTimeMillis) || 0) / 60_000)),
       context: show.context,
       episodeContext: episode.shortDescription ?? episode.description ?? "",
     }];
   });
+}
+
+function platformSearchUrls(podcastName, episodeTitle) {
+  const query = encodeURIComponent(`${podcastName} ${episodeTitle}`);
+  return {
+    spotifyUrl: `https://open.spotify.com/search/${query}`,
+    youtubeUrl: `https://www.youtube.com/results?search_query=${query}`,
+  };
 }
 
 function formatReleaseDate(value) {

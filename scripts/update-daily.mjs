@@ -274,9 +274,9 @@ function renderIssue({ date, github, hackerNews, productHunt, huggingFace, openR
     ["github", "github.svg", "GitHub Trending", "https://github.com/trending", github],
     ["hacker-news", "hacker-news.svg", "Hacker News", "https://news.ycombinator.com/", hackerNews],
     ["product-hunt", "product-hunt.svg", "Product Hunt", "https://www.producthunt.com/", productHunt],
+    ["tech-podcasts", "apple-podcasts.svg", "Apple Tech Podcasts", "https://podcasts.apple.com/us/charts?genre=1318", techPodcasts],
     ["hugging-face-papers", "hugging-face.svg", "Hugging Face Papers", "https://huggingface.co/papers", huggingFace],
     ["openrouter-rankings", "openrouter.svg", "OpenRouter Rankings", "https://openrouter.ai/rankings/", openRouter],
-    ["tech-podcasts", "apple-podcasts.svg", "Apple Tech Podcasts", "https://podcasts.apple.com/us/charts?genre=1318", techPodcasts],
   ];
   return `<!-- ISSUE_START:${date} -->\n        <article class="card" data-order="0" data-day="${date}">\n          <div class="card-shell">\n            <header class="card-head">${label}</header>\n            <div class="document">\n              <div class="document-layout">\n                <aside class="contents" aria-label="Contents">\n                  <p class="contents-title">Contents</p>\n                  ${sources.map(([id, icon, title]) => toc(id, date, icon, title)).join("\n                  ")}\n                </aside>\n                <div class="sections">\n                  ${sources.map(([id, icon, title, sourceUrl, items]) => renderSection(id, date, icon, title, sourceUrl, items)).join("\n                  ")}\n                </div>\n              </div>\n            </div>\n          </div>\n        </article>\n        <!-- ISSUE_END:${date} -->`;
 }

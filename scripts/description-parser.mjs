@@ -91,5 +91,6 @@ function cleanDescription(value) {
   const protocolPrefix = /^(?:(?:github|hn|ph|hf|openrouter|tech-podcast)-\d+)\s*(?:\\t|<TAB>|\t+|[:：]|[-—]\s+)\s*/i;
   while (protocolPrefix.test(description)) description = description.replace(protocolPrefix, "");
   if (/^(?:user|assistant|content)?\s*safety\s*[:：]\s*(?:safe|unsafe)\b/i.test(description)) return "";
+  if (!/[\u3400-\u9fff]/u.test(description)) return "";
   return description.trim();
 }

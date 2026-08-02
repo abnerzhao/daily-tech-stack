@@ -64,3 +64,7 @@ test("keeps legitimate names that resemble protocol keys", () => {
     new Map([["openrouter-0", "GPT-5：适合复杂推理任务。"]]),
   );
 });
+
+test("rejects summaries without Chinese text", () => {
+  assert.deepEqual(parseDescriptions("Hard Fork explores the latest tech news.", ["tech-podcast-0"]), new Map());
+});

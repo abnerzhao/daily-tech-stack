@@ -2,11 +2,13 @@
 
 [English](README.en.md)
 
-每天汇总 GitHub Trending、Hacker News、Product Hunt、Hugging Face Papers 与 OpenRouter Rankings 的静态技术日报。
+每天汇总 GitHub Trending、Hacker News、Product Hunt、Hugging Face Papers、OpenRouter Rankings、英文科技播客单集与 Bilibili 热门视频的静态日报。
 
 ## 部署与自动更新
 
-流程：GitHub Actions 每天北京时间 10:00 抓取五个来源的 Top 10 并提交 `index.html`；Vercel 监听 `main` 的新提交并自动部署。无需远程服务器、cron 或 Vercel Token。
+流程：GitHub Actions 每天北京时间 10:00 抓取七个来源的 Top 10 并提交 `index.html`；Vercel 监听 `main` 的新提交并自动部署。无需远程服务器、cron 或 Vercel Token。
+
+英文科技播客先按 Apple Podcasts 美国区 Technology 热门节目排序，再展示各节目的最新单集、发布日期与时长。
 
 Hugging Face 当天论文流尚未就绪时，任务会自动回退到最新可用的 Daily Papers，不会中断整份日报更新。
 

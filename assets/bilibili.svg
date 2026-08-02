@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Bilibili">
+  <rect width="24" height="24" rx="7" fill="#fb7299"/>
+  <path d="m8.2 5.5 2 2h3.6l2-2M6.7 8h10.6A1.7 1.7 0 0 1 19 9.7v6.6a1.7 1.7 0 0 1-1.7 1.7H6.7A1.7 1.7 0 0 1 5 16.3V9.7A1.7 1.7 0 0 1 6.7 8Z" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"/>
+  <path d="M9 12v2m6-2v2" stroke="#fff" stroke-linecap="round" stroke-width="1.6"/>
+</svg>

@@ -2,7 +2,9 @@
 
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { parseBilibiliPopular } from "./bilibili-source.mjs";
 import { parseDescriptions } from "./description-parser.mjs";
+import { parseAppleTechEpisodes, parseAppleTechPodcasts } from "./podcast-sources.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const outputPath = resolve(root, "index.html");
@@ -20,24 +22,27 @@ if (process.argv.includes("--help")) {
   process.exit(0);
 }
 
-const [github, hackerNews, productHunt, huggingFace, openRouter] = await Promise.all([
+const [github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts, bilibili] = await Promise.all([
   fetchGithubTrending(),
   fetchHackerNews(),
   fetchProductHunt(),
   fetchHuggingFacePapers(),
   fetchOpenRouterRankings(),
+  fetchTechPodcasts(),
+  fetchBilibiliPopular(),
 ]);
 
-const descriptions = await describeInChinese([...github, ...hackerNews, ...productHunt, ...huggingFace, ...openRouter]);
-for (const item of [...github, ...hackerNews, ...productHunt, ...huggingFace, ...openRouter]) {
+const allItems = [...github, ...hackerNews, ...productHunt, ...huggingFace, ...openRouter, ...techPodcasts, ...bilibili];
+const descriptions = await describeInChinese(allItems);
+for (const item of allItems) {
   item.description = descriptions.get(item.key) ?? fallbackDescription(item);
 }
 
 const html = await readFile(outputPath, "utf8");
-const issue = renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter });
+const issue = renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts, bilibili });
 const updated = replaceIssues(html, issue, date, today);
 await writeFile(outputPath, updated);
-console.log(`Updated ${date}: 50 signals`);
+console.log(`Updated ${date}: 70 signals`);
 
 function getOption(name) {
   const index = process.argv.indexOf(name);
@@ -192,6 +197,29 @@ async function fetchOpenRouterRankings() {
   }));
 }
 
+async function fetchTechPodcasts() {
+  const chart = await (await request("https://itunes.apple.com/us/rss/toppodcasts/limit=25/genre=1318/json")).json();
+  const shows = parseAppleTechPodcasts(chart).filter((show) => show.appleId);
+  const ids = shows.map((show) => show.appleId).join(",");
+  const lookupUrl = `https://itunes.apple.com/lookup?id=${ids}&media=podcast&entity=podcastEpisode&limit=1`;
+  const lookup = await (await request(lookupUrl)).json();
+  const episodes = parseAppleTechEpisodes(chart, lookup);
+  if (episodes.length < 10) throw new Error("Apple Technology Podcasts returned fewer than 10 latest episodes");
+  return episodes.slice(0, 10);
+}
+
+async function fetchBilibiliPopular() {
+  const response = await request("https://api.bilibili.com/x/web-interface/popular?ps=20&pn=1&web_location=333.934", {
+    headers: {
+      referer: "https://www.bilibili.com/",
+      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/138.0 Safari/537.36",
+    },
+  });
+  const videos = parseBilibiliPopular(await response.json());
+  if (videos.length < 10) throw new Error("Bilibili Popular returned fewer than 10 videos");
+  return videos.slice(0, 10);
+}
+
 async function describeInChinese(items) {
   if (!process.env.OPENROUTER_API_KEY) return new Map();
   const batches = Array.from({ length: Math.ceil(items.length / 10) }, (_, index) => items.slice(index * 10, index * 10 + 10));
@@ -221,7 +249,9 @@ async function describeBatch(items) {
 }
 
 async function requestDescriptions(items) {
-  const payload = items.map(({ key, source, title, context }) => ({ key, source, title, context }));
+  const payload = items.map(({ key, source, title, context, podcastName, episodeContext }) => ({
+    key, source, title, context, podcastName, episodeContext,
+  }));
   const response = await request("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -234,7 +264,7 @@ async function requestDescriptions(items) {
       model: process.env.OPENROUTER_MODEL ?? "openrouter/free",
       temperature: 0.2,
       messages: [
-        { role: "system", content: "你是技术编辑。为每条内容写一句简洁中文简介，包含内容是什么及为什么值得看；每条不超过45个中文字符。按输入顺序逐行返回，格式为 key<TAB>description。不要返回 Markdown、JSON 或其他说明。" },
+        { role: "system", content: "你是每日内容编辑。普通条目写一句不超过45个中文字符的简介，包含内容是什么及为什么值得看。tech-podcast 条目根据 context 总结整档播客的定位与主题，不要总结当前单集，也不要使用泛化推荐语；如果 title 或 episodeContext 明确表明这是嘉宾对谈，必须以“对谈+简短身份+姓名，”开头，再写节目定位与主题，例如“对谈美国作家 Anne Lamott，节目探讨时代命题与个人经验。”；禁止使用“本期嘉宾”字样，整句不超过65个中文字符；资料不明确时不要猜测。按输入顺序逐行返回，格式为 key<TAB>description。不要返回 Markdown、JSON 或其他说明。" },
         { role: "user", content: JSON.stringify(payload) },
       ],
     }),
@@ -252,11 +282,13 @@ function fallbackDescription(item) {
   if (item.source === "openrouter") return "近一周 Token 使用量靠前的模型，适合观察真实采用趋势。";
   if (item.source === "github") return `${item.title} 是今日热门${item.language || "开源"}项目，值得关注其实现与社区反馈。`;
   if (item.source === "ph") return `${item.title} 是今日热门新产品，值得了解其定位与用户反馈。`;
+  if (item.source === "tech-podcast") return `${item.podcastName} 的最新单集，适合追踪英文科技话题。`;
+  if (item.source === "bilibili") return `${item.owner} 的热门视频，值得关注当日社区话题。`;
   const label = { github: "开源项目", hn: "技术文章", ph: "新产品", hf: "AI 论文" }[item.source];
   return `今日热门${label}，建议查看原始页面了解实现与讨论。`;
 }
 
-function renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter }) {
+function renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts, bilibili }) {
   const label = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "Asia/Shanghai" }).format(new Date(`${date}T12:00:00+08:00`));
   const sources = [
     ["github", "github.svg", "GitHub Trending", "https://github.com/trending", github],
@@ -264,6 +296,8 @@ function renderIssue({ date, github, hackerNews, productHunt, huggingFace, openR
     ["product-hunt", "product-hunt.svg", "Product Hunt", "https://www.producthunt.com/", productHunt],
     ["hugging-face-papers", "hugging-face.svg", "Hugging Face Papers", "https://huggingface.co/papers", huggingFace],
     ["openrouter-rankings", "openrouter.svg", "OpenRouter Rankings", "https://openrouter.ai/rankings/", openRouter],
+    ["tech-podcasts", "apple-podcasts.svg", "Apple Top Tech Podcasts", "https://podcasts.apple.com/us/charts?genre=1318", techPodcasts],
+    ["bilibili-popular", "bilibili.svg", "Bilibili Popular", "https://www.bilibili.com/v/popular/all", bilibili],
   ];
   return `<!-- ISSUE_START:${date} -->\n        <article class="card" data-order="0" data-day="${date}">\n          <div class="card-shell">\n            <header class="card-head">${label}</header>\n            <div class="document">\n              <div class="document-layout">\n                <aside class="contents" aria-label="Contents">\n                  <p class="contents-title">Contents</p>\n                  ${sources.map(([id, icon, title]) => toc(id, date, icon, title)).join("\n                  ")}\n                </aside>\n                <div class="sections">\n                  ${sources.map(([id, icon, title, sourceUrl, items]) => renderSection(id, date, icon, title, sourceUrl, items)).join("\n                  ")}\n                </div>\n              </div>\n            </div>\n          </div>\n        </article>\n        <!-- ISSUE_END:${date} -->`;
 }
@@ -283,7 +317,11 @@ function renderItem(item, rank) {
       ? `<span aria-label="${item.source === "hf" ? item.upvotes : item.points} ${item.source === "hf" ? "upvotes" : "points"}"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.source === "hf" ? item.upvotes : item.points}</span><span aria-label="${item.comments} comments"><img class="meta-icon" src="assets/icon-comments.svg" alt="" aria-hidden="true" />${item.comments}</span>`
       : item.source === "openrouter"
         ? `<span aria-label="${formatContext(item.contextLength)} context"><img class="meta-icon" src="assets/icon-code.svg" alt="" aria-hidden="true" />${formatContext(item.contextLength)} context</span><span>Input ${formatPricePerMillion(item.inputPrice)}/M</span><span>Output ${formatPricePerMillion(item.outputPrice)}/M</span>`
-        : `<span aria-label="${item.votes} votes"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.votes}</span>`;
+        : item.source === "tech-podcast"
+          ? `<span>${escape(item.podcastName)}</span>${item.releasedAt ? `<span><img class="meta-icon" src="assets/icon-clock.svg" alt="" aria-hidden="true" />${escape(item.releasedAt)}</span>` : ""}<span>${item.duration} min</span>`
+          : item.source === "bilibili"
+            ? `<span>UP 主: ${escape(item.owner)}</span><span>发布时间: ${escape(item.publishedAt)}</span>`
+            : `<span aria-label="${item.votes} votes"><img class="meta-icon" src="assets/icon-points.svg" alt="" aria-hidden="true" />${item.votes}</span>`;
   return `                    <article class="item">\n                      <a class="item-title" href="${escape(item.url)}" target="_blank" rel="noreferrer"><span class="rank">#${String(rank).padStart(2, "0")}</span><span>${escape(item.title)}</span></a>\n                      <div class="meta">${meta}</div>\n                      <p>${escape(item.description)}</p>\n                    </article>`;
 }
 

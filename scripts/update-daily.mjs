@@ -250,7 +250,7 @@ async function requestDescriptions(items) {
       model: process.env.OPENROUTER_MODEL ?? "openrouter/free",
       temperature: 0.2,
       messages: [
-        { role: "system", content: "你是每日内容编辑。普通条目写一句不超过45个中文字符的简介，包含内容是什么及为什么值得看。tech-podcast 条目根据 context 总结整档播客的定位与主题，不要总结当前单集，也不要使用泛化推荐语；如果 title 或 episodeContext 明确表明这是嘉宾对谈，必须以“对谈+简短身份+姓名，”开头，再写节目定位与主题，例如“对谈美国作家 Anne Lamott，节目探讨时代命题与个人经验。”；禁止使用“本期嘉宾”字样，整句不超过65个中文字符；资料不明确时不要猜测。按输入顺序逐行返回，格式为 key<TAB>description。不要返回 Markdown、JSON 或其他说明。" },
+        { role: "system", content: "你是每日内容编辑。普通条目写一句不超过45个中文字符的简介，包含内容是什么及为什么值得看。tech-podcast 条目根据 context 总结整档播客的定位与主题，不要总结当前单集，也不要使用泛化推荐语；如果 title 或 episodeContext 明确表明这是嘉宾对谈，必须以“对谈+简短身份+姓名，”开头，再写节目定位与主题，例如“对谈美国作家 Anne Lamott，节目探讨时代命题与个人经验。”；禁止使用“本期嘉宾”字样，整句不超过65个中文字符；资料不明确时不要猜测。description 中不得重复 key、TAB 标记或 User Safety 等安全分类。按输入顺序逐行返回，格式为 key<TAB>description。不要返回 Markdown、JSON 或其他说明。" },
         { role: "user", content: JSON.stringify(payload) },
       ],
     }),
@@ -265,12 +265,7 @@ async function requestDescriptions(items) {
 }
 
 function fallbackDescription(item) {
-  if (item.source === "openrouter") return "近一周 Token 使用量靠前的模型，适合观察真实采用趋势。";
-  if (item.source === "github") return `${item.title} 是今日热门${item.language || "开源"}项目，值得关注其实现与社区反馈。`;
-  if (item.source === "ph") return `${item.title} 是今日热门新产品，值得了解其定位与用户反馈。`;
-  if (item.source === "tech-podcast") return `${item.podcastName} 的最新单集，适合追踪英文科技话题。`;
-  const label = { github: "开源项目", hn: "技术文章", ph: "新产品", hf: "AI 论文" }[item.source];
-  return `今日热门${label}，建议查看原始页面了解实现与讨论。`;
+  return item.title;
 }
 
 function renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts }) {
@@ -318,6 +313,8 @@ function languageIcon(language = "") {
     Rust: "rust/rust-original.svg", Swift: "swift/swift-original.svg", Ruby: "ruby/ruby-original.svg",
     C: "c/c-original.svg", "C++": "cplusplus/cplusplus-original.svg", Kotlin: "kotlin/kotlin-original.svg",
     Shell: "bash/bash-original.svg", Jupyter: "jupyter/jupyter-original.svg",
+    "Jupyter Notebook": "jupyter/jupyter-original.svg", Crystal: "crystal/crystal-original.svg",
+    Markdown: "markdown/markdown-original.svg", PowerShell: "powershell/powershell-original.svg",
   };
   const icon = icons[language];
   return icon ? `<img class="language-icon" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/${icon}" alt="" aria-hidden="true" />` : "";

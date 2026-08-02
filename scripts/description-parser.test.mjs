@@ -41,3 +41,26 @@ test("accepts a plain single-item response", () => {
     new Map([["hn-0", "该项目通过低内存运行大模型，适合关注端侧推理。"]]),
   );
 });
+
+test("removes duplicated protocol keys and TAB markers", () => {
+  const content = JSON.stringify({ items: [
+    { key: "github-0", description: "github-0\\t开源项目，值得关注。" },
+    { key: "hn-0", description: "hn-0<TAB>技术讨论热度高。" },
+  ] });
+  assert.deepEqual(parseDescriptions(content, keys), new Map([
+    ["github-0", "开源项目，值得关注。"],
+    ["hn-0", "技术讨论热度高。"],
+  ]));
+});
+
+test("rejects safety metadata as a description", () => {
+  assert.deepEqual(parseDescriptions("User Safety: safe", ["hn-0"]), new Map());
+  assert.deepEqual(parseDescriptions("hn-0<TAB>User Safety: safe", ["hn-0"]), new Map());
+});
+
+test("keeps legitimate names that resemble protocol keys", () => {
+  assert.deepEqual(
+    parseDescriptions("GPT-5：适合复杂推理任务。", ["openrouter-0"]),
+    new Map([["openrouter-0", "GPT-5：适合复杂推理任务。"]]),
+  );
+});

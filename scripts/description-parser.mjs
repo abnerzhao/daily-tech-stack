@@ -7,7 +7,7 @@ export function parseDescriptions(content, expectedKeys) {
   let pendingKey = "";
   for (const rawLine of String(content).split(/\r?\n/)) {
     const line = rawLine.trim();
-    const match = line.match(/^(?:[-*]\s*)?(?:\d+[.)]\s*)?(?:\|\s*)?(?:["'`]|\*{1,2})?([a-z][a-z-]*-\d+)(?:["'`]|\*{1,2})?\s*(?:\t+|\|\s*|[:：]\s*|[-—]\s+)(.+?)(?:\s*\|)?$/i);
+    const match = line.match(/^(?:[-*]\s*)?(?:\d+[.)]\s*)?(?:\|\s*)?(?:["'`]|\*{1,2})?([a-z][a-z-]*-\d+)(?:["'`]|\*{1,2})?\s*(?:\\t|<TAB>|\t+|\|\s*|[:：]\s*|[-—]\s+)(.+?)(?:\s*\|)?$/i);
     if (match && expected.has(match[1])) {
       const description = cleanDescription(match[2]);
       if (description) lines.set(match[1], description);
@@ -86,5 +86,10 @@ function extractBalancedJson(text, start) {
 }
 
 function cleanDescription(value) {
-  return typeof value === "string" ? value.trim().replace(/^(?:['\"`]+|\*+)|(?:['\"`]+|\*+)$/g, "") : "";
+  if (typeof value !== "string") return "";
+  let description = value.trim().replace(/^(?:['\"`]+|\*+)|(?:['\"`]+|\*+)$/g, "");
+  const protocolPrefix = /^(?:(?:github|hn|ph|hf|openrouter|tech-podcast)-\d+)\s*(?:\\t|<TAB>|\t+|[:：]|[-—]\s+)\s*/i;
+  while (protocolPrefix.test(description)) description = description.replace(protocolPrefix, "");
+  if (/^(?:user|assistant|content)?\s*safety\s*[:：]\s*(?:safe|unsafe)\b/i.test(description)) return "";
+  return description.trim();
 }

@@ -7,10 +7,6 @@ on:
         description: "Optional issue date in YYYY-MM-DD (defaults to Asia/Shanghai today)"
         required: false
         type: string
-  schedule:
-    # 10:07 Asia/Shanghai (02:07 UTC). Avoid the hourly scheduling peak.
-    - cron: "7 2 * * *"
-
 permissions:
   contents: write
 

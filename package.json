@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "daily:update": "node scripts/update-daily.mjs"
+    "daily:update": "node scripts/update-daily.mjs",
+    "test": "node --test scripts/*.test.mjs cloudflare-worker/*.test.mjs",
+    "worker:dev": "npx wrangler@latest dev --test-scheduled",
+    "worker:deploy": "npx wrangler@latest deploy"
   }
 }

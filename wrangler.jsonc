@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "daily-tech-stack-trigger",
+  "main": "cloudflare-worker/index.js",
+  "compatibility_date": "2026-08-03",
+  "triggers": {
+    "crons": ["0 2 * * *"]
+  },
+  "vars": {
+    "GITHUB_OWNER": "abnerzhao",
+    "GITHUB_REPO": "daily-tech-stack",
+    "GITHUB_WORKFLOW": "daily-update.yml",
+    "GITHUB_REF": "main"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

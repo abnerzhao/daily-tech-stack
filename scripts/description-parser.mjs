@@ -9,7 +9,7 @@ export function parseDescriptions(content, expectedKeys) {
     const line = rawLine.trim();
     const match = line.match(/^(?:[-*]\s*)?(?:\d+[.)]\s*)?(?:\|\s*)?(?:["'`]|\*{1,2})?([a-z][a-z-]*-\d+)(?:["'`]|\*{1,2})?\s*(?:\\t|<TAB>|\t+|\|\s*|[:：]\s*|[-—]\s+)(.+?)(?:\s*\|)?$/i);
     if (match && expected.has(match[1])) {
-      const description = cleanDescription(match[2]);
+      const description = cleanDescription(match[2], match[1]);
       if (description) lines.set(match[1], description);
       pendingKey = "";
       continue;
@@ -20,14 +20,20 @@ export function parseDescriptions(content, expectedKeys) {
       continue;
     }
     if (!pendingKey || !line) continue;
-    const description = cleanDescription(line);
+    const description = cleanDescription(line, pendingKey);
     if (description) lines.set(pendingKey, description);
     pendingKey = "";
   }
   if (lines.size || expected.size !== 1) return lines;
 
-  const plainText = cleanDescription(String(content).replace(/```(?:json)?\s*|```/gi, "").trim());
-  if (plainText && !/^[{[]/.test(plainText)) lines.set([...expected][0], plainText);
+  const plainLines = String(content)
+    .replace(/```(?:json)?\s*|```/gi, "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const key = [...expected][0];
+  const plainText = plainLines.length === 1 ? cleanDescription(plainLines[0], key) : "";
+  if (plainText && !/^[{[]/.test(plainText)) lines.set(key, plainText);
   return lines;
 }
 
@@ -40,7 +46,7 @@ function parseJsonDescriptions(content, expected) {
       const descriptions = new Map();
       for (const item of items) {
         if (!expected.has(item?.key)) continue;
-        const description = cleanDescription(item.description);
+        const description = cleanDescription(item.description, item.key);
         if (description) descriptions.set(item.key, description);
       }
       if (descriptions.size) return descriptions;
@@ -85,12 +91,17 @@ function extractBalancedJson(text, start) {
   return "";
 }
 
-function cleanDescription(value) {
+function cleanDescription(value, key = "") {
   if (typeof value !== "string") return "";
   let description = value.trim().replace(/^(?:['\"`]+|\*+)|(?:['\"`]+|\*+)$/g, "");
   const protocolPrefix = /^(?:(?:github|hn|ph|hf|openrouter|tech-podcast)-\d+)\s*(?:\\t|<TAB>|\t+|[:：]|[-—]\s+)\s*/i;
   while (protocolPrefix.test(description)) description = description.replace(protocolPrefix, "");
   if (/^(?:user|assistant|content)?\s*safety\s*[:：]\s*(?:safe|unsafe)\b/i.test(description)) return "";
+  if (/\r|\n/.test(description)) return "";
+  if (/(?:≤|<=)\s*\d+\s*(?:characters?|字符)|\b(?:count(?:ing)? characters?|let['’]s (?:craft|count)|must be|not a guest dialogue|so description|context describes)\b/i.test(description)) return "";
   if (!/[\u3400-\u9fff]/u.test(description)) return "";
+  const maxChineseCharacters = key.startsWith("tech-podcast-") ? 65 : 45;
+  const chineseCharacters = description.match(/[\u3400-\u9fff]/gu)?.length ?? 0;
+  if (chineseCharacters > maxChineseCharacters || Array.from(description).length > 120) return "";
   return description.trim();
 }

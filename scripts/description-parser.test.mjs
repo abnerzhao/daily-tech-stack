@@ -68,3 +68,16 @@ test("keeps legitimate names that resemble protocol keys", () => {
 test("rejects summaries without Chinese text", () => {
   assert.deepEqual(parseDescriptions("Hard Fork explores the latest tech news.", ["tech-podcast-0"]), new Map());
 });
+
+test("rejects leaked reasoning and character-count analysis", () => {
+  const content = `Title "Kimi K3: Open Frontier Intelligence". Context describes model details. Not a guest dialogue.
+So description: summarize the model. Must be ≤45 Chinese characters. Let's craft: "介绍Kimi K3模型。"
+Count characters: 介(1)绍(2)K(3)i(4)m(5)i(6)`;
+  assert.deepEqual(parseDescriptions(content, ["hf-0"]), new Map());
+  assert.deepEqual(parseDescriptions(`hf-0<TAB>${content}`, ["hf-0"]), new Map());
+});
+
+test("rejects summaries beyond the source length limit", () => {
+  const tooLong = "这是一段明显超过规定长度的中文摘要，它包含过多的背景、方法、结果、结论以及不必要的延伸解释内容，继续补充无关细节。";
+  assert.deepEqual(parseDescriptions(tooLong, ["hf-0"]), new Map());
+});

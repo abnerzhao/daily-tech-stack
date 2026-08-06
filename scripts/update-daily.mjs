@@ -250,7 +250,7 @@ async function requestDescriptions(items) {
       model: process.env.OPENROUTER_MODEL ?? "openrouter/free",
       temperature: 0.2,
       messages: [
-        { role: "system", content: "你是每日内容编辑。普通条目写一句不超过45个中文字符的简介，包含内容是什么及为什么值得看。tech-podcast 条目根据 context 总结整档播客的定位与主题，不要总结当前单集，也不要使用泛化推荐语；如果 title 或 episodeContext 明确表明这是嘉宾对谈，必须以“对谈+简短身份+姓名，”开头，再写节目定位与主题，例如“对谈美国作家 Anne Lamott，节目探讨时代命题与个人经验。”；禁止使用“本期嘉宾”字样，整句不超过65个中文字符；资料不明确时不要猜测。description 中不得重复 key、TAB 标记或 User Safety 等安全分类。按输入顺序逐行返回，格式为 key<TAB>description。不要返回 Markdown、JSON 或其他说明。" },
+        { role: "system", content: "你是每日内容编辑。普通条目写一句不超过45个中文字符的简介，包含内容是什么及为什么值得看。tech-podcast 条目根据 context 总结整档播客的定位与主题，不要总结当前单集，也不要使用泛化推荐语；如果 title 或 episodeContext 明确表明这是嘉宾对谈，必须以“对谈+简短身份+姓名，”开头，再写节目定位与主题，例如“对谈美国作家 Anne Lamott，节目探讨时代命题与个人经验。”；禁止使用“本期嘉宾”字样，整句不超过65个中文字符；资料不明确时不要猜测。description 中不得重复 key、TAB 标记或 User Safety 等安全分类。按输入顺序逐行返回，格式为 key<TAB>description。只输出最终结果，不要输出思考过程、候选文案、字数统计、Markdown、JSON 或其他说明。" },
         { role: "user", content: JSON.stringify(payload) },
       ],
     }),

@@ -3,6 +3,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parseDescriptions } from "./description-parser.mjs";
+import { fetchGithubTrending } from "./github-trending.mjs";
 import { parseAppleTechEpisodes, parseAppleTechPodcasts } from "./podcast-sources.mjs";
 
 const root = resolve(import.meta.dirname, "..");
@@ -22,7 +23,7 @@ if (process.argv.includes("--help")) {
 }
 
 const [github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts] = await Promise.all([
-  fetchGithubTrending(),
+  fetchGithubTrending(request),
   fetchHackerNews(),
   fetchProductHunt(),
   fetchHuggingFacePapers(),
@@ -57,39 +58,6 @@ async function request(url, options = {}) {
   });
   if (!response.ok) throw new Error(`${url} returned ${response.status}`);
   return response;
-}
-
-async function fetchGithubTrending() {
-  const html = await (await request("https://github.com/trending?since=daily")).text();
-  const rows = [...html.matchAll(/<article class="Box-row">([\s\S]*?)<\/article>/g)].slice(0, 10);
-  if (rows.length < 10) throw new Error("GitHub Trending returned fewer than 10 projects");
-
-  const projects = rows.map((match, index) => {
-    const row = match[1];
-    const repository = row.match(/<h2[^>]*>[\s\S]*?href="\/([^"?#]+\/[^"?#]+)"/)?.[1];
-    if (!repository) throw new Error("Unable to parse a GitHub Trending repository");
-    return {
-      key: `github-${index}`,
-      source: "github",
-      title: repository,
-      url: `https://github.com/${repository}`,
-      language: textFrom(row.match(/itemprop="programmingLanguage">([\s\S]*?)<\//)?.[1]),
-      context: textFrom(row.match(/class="col-9 color-fg-muted my-1 pr-4">([\s\S]*?)<\//)?.[1]),
-    };
-  });
-
-  return Promise.all(projects.map(async (project) => {
-    const repository = await (await request(`https://api.github.com/repos/${project.title}`, {
-      headers: {
-        accept: "application/vnd.github+json",
-        ...(process.env.GITHUB_TOKEN ? { authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
-      },
-    })).json();
-    if (!Number.isFinite(repository.stargazers_count)) {
-      throw new Error(`Unable to fetch total star count for ${project.title}`);
-    }
-    return { ...project, stars: repository.stargazers_count };
-  }));
 }
 
 async function fetchHackerNews() {

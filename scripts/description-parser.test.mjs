@@ -53,6 +53,13 @@ test("removes duplicated protocol keys and TAB markers", () => {
   ]));
 });
 
+test("removes a duplicated TAB marker before the description", () => {
+  assert.deepEqual(
+    parseDescriptions("github-0<TAB>TAB提供图表设计库，帮助快速创建可视化图形。", ["github-0"]),
+    new Map([["github-0", "提供图表设计库，帮助快速创建可视化图形。"]]),
+  );
+});
+
 test("rejects safety metadata as a description", () => {
   assert.deepEqual(parseDescriptions("User Safety: safe", ["hn-0"]), new Map());
   assert.deepEqual(parseDescriptions("hn-0<TAB>User Safety: safe", ["hn-0"]), new Map());

@@ -41,7 +41,7 @@ const html = await readFile(outputPath, "utf8");
 const issue = renderIssue({ date, github, hackerNews, productHunt, huggingFace, openRouter, techPodcasts });
 const updated = replaceIssues(html, issue, date, today);
 await writeFile(outputPath, updated);
-console.log(`Updated ${date}: 60 signals`);
+console.log(`Updated ${date}: ${allItems.length} signals`);
 
 function getOption(name) {
   const index = process.argv.indexOf(name);

@@ -60,6 +60,17 @@ test("removes a duplicated TAB marker before the description", () => {
   );
 });
 
+test("normalizes podcast wording accidentally used for a paper", () => {
+  assert.deepEqual(
+    parseDescriptions("hf-0<TAB>节目聚焦小参数模型的上下文学习能力。", ["hf-0"]),
+    new Map([["hf-0", "论文聚焦小参数模型的上下文学习能力。"]]),
+  );
+  assert.deepEqual(
+    parseDescriptions("tech-podcast-0<TAB>节目聚焦人工智能行业动态。", ["tech-podcast-0"]),
+    new Map([["tech-podcast-0", "节目聚焦人工智能行业动态。"]]),
+  );
+});
+
 test("rejects safety metadata as a description", () => {
   assert.deepEqual(parseDescriptions("User Safety: safe", ["hn-0"]), new Map());
   assert.deepEqual(parseDescriptions("hn-0<TAB>User Safety: safe", ["hn-0"]), new Map());

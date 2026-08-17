@@ -97,6 +97,7 @@ function cleanDescription(value, key = "") {
   const protocolPrefix = /^(?:(?:github|hn|ph|hf|openrouter|tech-podcast)-\d+)\s*(?:\\t|<TAB>|\t+|[:：]|[-—]\s+)\s*/i;
   while (protocolPrefix.test(description)) description = description.replace(protocolPrefix, "");
   description = description.replace(/^(?:\\t|<TAB>|TAB)\s*(?=[\u3400-\u9fff])/i, "");
+  if (key.startsWith("hf-")) description = description.replace(/^(?:节目|播客)/, "论文");
   if (/^(?:user|assistant|content)?\s*safety\s*[:：]\s*(?:safe|unsafe)\b/i.test(description)) return "";
   if (/\r|\n/.test(description)) return "";
   if (/(?:≤|<=)\s*\d+\s*(?:characters?|字符)|\b(?:count(?:ing)? characters?|let['’]s (?:craft|count)|must be|not a guest dialogue|so description|context describes)\b/i.test(description)) return "";

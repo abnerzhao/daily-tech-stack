@@ -176,7 +176,10 @@ async function fetchTechPodcasts() {
 
 async function describeInChinese(items) {
   if (!process.env.OPENROUTER_API_KEY) return new Map();
-  const batches = Array.from({ length: Math.ceil(items.length / 10) }, (_, index) => items.slice(index * 10, index * 10 + 10));
+  const groups = Map.groupBy(items, (item) => item.source);
+  const batches = [...groups.values()].flatMap((group) => (
+    Array.from({ length: Math.ceil(group.length / 10) }, (_, index) => group.slice(index * 10, index * 10 + 10))
+  ));
   const descriptions = await Promise.all(batches.map(describeBatch));
   return new Map(descriptions.flatMap((batch) => [...batch]));
 }
@@ -218,7 +221,7 @@ async function requestDescriptions(items) {
       model: process.env.OPENROUTER_MODEL ?? "openrouter/free",
       temperature: 0.2,
       messages: [
-        { role: "system", content: "你是每日内容编辑。普通条目写一句不超过45个中文字符的简介，包含内容是什么及为什么值得看。tech-podcast 条目根据 context 总结整档播客的定位与主题，不要总结当前单集，也不要使用泛化推荐语；如果 title 或 episodeContext 明确表明这是嘉宾对谈，必须以“对谈+简短身份+姓名，”开头，再写节目定位与主题，例如“对谈美国作家 Anne Lamott，节目探讨时代命题与个人经验。”；禁止使用“本期嘉宾”字样，整句不超过65个中文字符；资料不明确时不要猜测。description 中不得重复 key、TAB 标记或 User Safety 等安全分类。按输入顺序逐行返回，格式为 key<TAB>description。只输出最终结果，不要输出思考过程、候选文案、字数统计、Markdown、JSON 或其他说明。" },
+        { role: "system", content: descriptionPrompt(items[0]?.source) },
         { role: "user", content: JSON.stringify(payload) },
       ],
     }),
@@ -230,6 +233,15 @@ async function requestDescriptions(items) {
   if (!descriptions.size) throw new Error("OpenRouter returned no parseable descriptions");
   if (descriptions.size !== items.length) throw new Error("OpenRouter returned incomplete descriptions");
   return descriptions;
+}
+
+function descriptionPrompt(source) {
+  const outputRules = "description 中不得重复 key、TAB 标记或 User Safety 等安全分类。按输入顺序逐行返回，格式为 key<TAB>description。只输出最终结果，不要输出思考过程、候选文案、字数统计、Markdown、JSON 或其他说明。";
+  if (source === "tech-podcast") {
+    return `你是播客内容编辑。根据 context 总结整档播客的定位与主题，不要总结当前单集，也不要使用泛化推荐语；如果 title 或 episodeContext 明确表明这是嘉宾对谈，必须以“对谈+简短身份+姓名，”开头，再写节目定位与主题，例如“对谈美国作家 Anne Lamott，节目探讨时代命题与个人经验。”；禁止使用“本期嘉宾”字样，整句不超过65个中文字符；资料不明确时不要猜测。${outputRules}`;
+  }
+  const contentType = { github: "开源项目", hn: "技术文章", ph: "产品", hf: "学术论文", openrouter: "AI模型" }[source] ?? "技术内容";
+  return `你是每日内容编辑。输入全部是${contentType}。为每条内容写一句不超过45个中文字符的中文简介，说明内容是什么及为什么值得看。禁止使用“节目”“播客”等播客措辞。资料不明确时不要猜测。${outputRules}`;
 }
 
 function fallbackDescription(item) {
